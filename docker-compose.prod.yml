@@ -1,0 +1,53 @@
+version: '3'
+
+networks:
+  web:
+    external: true
+
+volumes:
+  db: {}
+  redis: {}
+  storage: {}
+
+services:
+  app:
+    image: paperprism/paperprism
+    env_file: .env
+    volumes:
+      - storage:/app/storage
+    restart: always
+    networks:
+      - web
+      - default
+    expose:
+      - 80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.taco.rule=Host(`mypaperprism.example.com`)"
+      - "traefik.http.routers.taco.tls.certresolver=default"
+  worker:
+    image: paperprism/paperprism
+    env_file: .env
+    volumes:
+      - storage:/app/storage
+    command: worker
+    restart: always
+  scheduler:
+    image: paperprism/paperprism
+    env_file: .env
+    volumes:
+      - storage:/app/storage
+    command: scheduler
+    restart: always
+  db:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db:/var/lib/postgresql/data
+    restart: always
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis:/data
+    restart: always

@@ -1,0 +1,72 @@
+version: '3'
+
+volumes:
+  db: {}
+  redis: {}
+
+services:
+  reverse_proxy:
+    image: traefik
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - 80:80
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+  app:
+    build:
+      context: .
+      dockerfile: development.dockerfile
+    volumes:
+      - ./:/app
+    environment:
+      TZ: Europe/Berlin
+    restart: on-failure
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`paperprism.localhost`) && PathPrefix(`/api`)
+  worker:
+    build:
+      context: .
+      dockerfile: development.dockerfile
+    volumes:
+      - ./:/app
+    command: worker
+    restart: on-failure
+  scheduler:
+    build:
+      context: .
+      dockerfile: development.dockerfile
+    volumes:
+      - ./:/app
+    command: scheduler
+    restart: on-failure
+  ui:
+    image: node:alpine
+    volumes:
+      - ./ui:/app/ui
+    working_dir: /app/ui
+    command: sh -c "yarn && exec yarn serve --port 8080"
+    restart: on-failure
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ui.rule=Host(`paperprism.localhost`)
+      - traefik.http.services.ui.loadbalancer.server.port=8080
+  db:
+    image: postgres:13-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db:/var/lib/postgresql/data
+    restart: on-failure
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis:/data
+    restart: on-failure
