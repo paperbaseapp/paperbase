@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\UsesPrimaryUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Ramsey\Collection\Collection;
 
 /**
@@ -19,6 +20,18 @@ class Library extends Model
     use HasFactory;
     use UsesPrimaryUuid;
 
+    protected static function booted()
+    {
+        static::created(function (Library $library) {
+            mkdir($library->getAbsolutePath());
+        });
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
     public function documents()
     {
         return $this->hasMany(Document::class);
@@ -26,6 +39,6 @@ class Library extends Model
 
     public function getAbsolutePath()
     {
-        return join_path(storage_path('libraries'), $this->id);
+        return join_path(storage_path('libraries'), $this->id . '-' . Str::slug($this->name));
     }
 }
