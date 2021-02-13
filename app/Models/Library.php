@@ -13,6 +13,7 @@ use Ramsey\Collection\Collection;
  * @package App\Models
  * @property string id
  * @property string name
+ * @property User owner
  * @property Document[]|Collection documents
  */
 class Library extends Model

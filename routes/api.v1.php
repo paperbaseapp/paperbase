@@ -12,11 +12,8 @@
 */
 
 
-use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ChannelController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\Providers\WebPushSubscriptionController;
+use App\Http\Controllers\LibraryController;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 
@@ -26,5 +23,7 @@ Route::group(['prefix' => '/auth'], function (Router $router) {
 });
 
 Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
-    // Routes
+    $router->group(['prefix' => '/library'], function (Router $router) {
+       $router->post('/', [LibraryController::class, 'create']);
+    });
 });
