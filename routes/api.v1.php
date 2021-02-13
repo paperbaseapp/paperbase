@@ -25,5 +25,6 @@ Route::group(['prefix' => '/auth'], function (Router $router) {
 Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
     $router->group(['prefix' => '/library'], function (Router $router) {
        $router->post('/', [LibraryController::class, 'create']);
+       $router->get('/', [LibraryController::class, 'getAll']);
     });
 });

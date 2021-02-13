@@ -2,7 +2,7 @@
     <v-app>
         <v-app-bar app :value="$store.getters.isLoggedIn && !$route.meta.hideNavigation">
             <v-btn
-                v-if="$route.name !== 'applications'"
+                v-if="$route.name !== 'dashboard'"
                 icon
                 @click.stop="$router.history.length > 1 ? $router.back() : $router.push({name: 'applications'})"
             >

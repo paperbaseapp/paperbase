@@ -12,7 +12,7 @@ class LibraryController extends Controller
     public function create()
     {
         $data = $this->validateWith([
-            'name' => 'string|required',
+            'name' => 'string|unique:libraries,name|required',
         ]);
 
         $library = new Library();
@@ -22,4 +22,10 @@ class LibraryController extends Controller
 
         return response()->json($library);
     }
+
+    public function getAll()
+    {
+        return User::current()->libraries->sortBy('name', SORT_NATURAL|SORT_FLAG_CASE)->values();
+    }
 }
+

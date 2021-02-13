@@ -20,3 +20,5 @@ if (app()->environment('production')) {
         return file_get_contents(public_path('ui-index.html'));
     })->where('any', '.*');
 }
+
+

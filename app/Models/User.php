@@ -6,6 +6,7 @@ use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -14,6 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @package App\Models
  * @property string account
  * @property string password
+ * @property Library[]|Collection libraries
  */
 class User extends BaseModel implements Authenticatable
 {
@@ -29,5 +31,10 @@ class User extends BaseModel implements Authenticatable
     public static function current(): ?User
     {
         return Auth::user();
+    }
+
+    public function libraries()
+    {
+        return $this->hasMany(Library::class, 'owner_id');
     }
 }
