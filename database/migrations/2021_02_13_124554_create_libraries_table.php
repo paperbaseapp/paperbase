@@ -18,9 +18,9 @@ class CreateLibrariesTable extends Migration
             $table->uuid('id')->primary();
 
             $table->string('name');
-            $table
-                ->foreignIdFor(User::class, 'owner_id')
-                ->constrained()
+            $table->uuid('owner_id');
+            $table->foreign('owner_id')
+                ->references('id')->on('users')
                 ->cascadeOnDelete()
                 ->cascadeOnUpdate();
 
@@ -36,6 +36,5 @@ class CreateLibrariesTable extends Migration
     public function down()
     {
         Schema::dropIfExists('libraries');
-
     }
 }
