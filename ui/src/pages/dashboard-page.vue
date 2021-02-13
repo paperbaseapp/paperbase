@@ -62,7 +62,9 @@ export default {
       try {
         await axios.$post('/library', {
           name: this.newLibraryName,
-        })
+        },
+        this.newLibraryDialogOpen = false
+        )
       } catch (e) {
         console.error(e)
         if (e.response.data === 402) {
