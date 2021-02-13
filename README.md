@@ -1,4 +1,5 @@
 # Paperprism
+![ci](https://github.com/paperprism/docs/workflows/ci/badge.svg)
 
 ## Development setup
 
