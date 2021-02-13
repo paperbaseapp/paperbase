@@ -11,6 +11,7 @@ export const store = new Vuex.Store({
     user: null,
     redirectRoute: null,
     modelCache: {},
+    jobs: {},
   },
   mutations: {
     setUser(state, user) {
@@ -22,13 +23,56 @@ export const store = new Vuex.Store({
     setRedirectRoute(state, redirectRoute) {
       state.redirectRoute = redirectRoute
     },
+    setJob(state, job) {
+      Vue.set(state.jobs, job.id, job)
+    }
   },
   getters: {
     isLoggedIn(state) {
       return state.user !== null
     },
   },
+  actions: {
+    async updateJobs({commit, state}) {
+      const jobsToFetch = []
+      for (const job of Object.values(state.jobs)) {
+        if (!['failed', 'finished'].includes(job.status)) {
+          jobsToFetch.push(job.id)
+        }
+      }
+
+      if (jobsToFetch.length > 0) {
+        const jobs = await axios.$get('/job', {
+          params: {
+            ids: jobsToFetch,
+          },
+        })
+        for (const job of jobs) {
+          commit('setJob', job)
+        }
+      }
+    },
+    async startSyncLibraryJob({commit}, libraryId) {
+      const job = await axios.$post(`/library/${libraryId}/sync`)
+      commit('setJob', job)
+      return job
+    },
+  }
 })
+
+
+// Update job statuses
+const scheduleJobsUpdate = () => {
+  setTimeout(async () => {
+    try {
+      await store.dispatch('updateJobs')
+    } catch (e) {
+      console.error(e)
+    }
+    scheduleJobsUpdate()
+  }, 1000)
+}
+scheduleJobsUpdate()
 
 store.commit('setLoggingIn', true)
 

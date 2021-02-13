@@ -23,6 +23,7 @@ class CreateLibrariesTable extends Migration
                 ->references('id')->on('users')
                 ->cascadeOnDelete()
                 ->cascadeOnUpdate();
+            $table->boolean('needs_sync')->default(false);
 
             $table->timestamps();
         });

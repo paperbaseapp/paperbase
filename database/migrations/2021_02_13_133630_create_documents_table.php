@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Document;
 use App\Models\Library;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -26,7 +27,8 @@ class CreateDocumentsTable extends Migration
             $table->string('path');
             $table->string('last_hash');
             $table->string('title');
-            $table->longText('text_content');
+            $table->string('ocr_status')->default(Document::OCR_UNAVAILABLE);
+            $table->longText('text_content')->default('');
 
             $table->unique(['library_id', 'path']);
 

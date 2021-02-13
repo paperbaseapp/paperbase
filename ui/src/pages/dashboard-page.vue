@@ -1,21 +1,22 @@
 <template>
   <v-container>
     <portal to="app-bar-end">
-      <div class="d-flex align-center">
-        <v-select
-          v-model="selectedLibrary"
-          placeholder="Select Library"
-          solo
-          flat
-          hide-details
-          :items="libraries"
-        >
-          <template v-slot:item="{ item }">
-            <v-icon v-if="item.value === 'new'" left>mdi-plus</v-icon>
-            <span style="line-height: 1">{{ item.text }}</span>
-          </template>
-        </v-select>
-      </div>
+      <v-select
+        v-model="selectedLibrary"
+        placeholder="Select Library"
+        solo
+        flat
+        hide-details
+        return-object
+        :items="librariesSelect"
+        item-text="name"
+        item-value="id"
+      >
+        <template v-slot:item="{ item }">
+          <v-icon v-if="item.id === 'new'" left>mdi-plus</v-icon>
+          <span style="line-height: 1">{{ item.name }}</span>
+        </template>
+      </v-select>
     </portal>
 
     <v-dialog v-model="newLibraryDialogOpen" transition="slide-y-reverse-transition" max-width="600">
@@ -32,30 +33,44 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <library-view v-if="!!selectedLibrary" :library-id="selectedLibrary.id" />
   </v-container>
 </template>
 
 <script>
 import {axios} from '@/lib/axios'
+import LibraryView from '@/components/library-view'
 
 export default {
   name: 'dashboard-page',
+  components: {LibraryView},
   data: () => ({
-    selectedLibrary: null,
     newLibraryDialogOpen: false,
     newLibraryName: '',
-    libraries: [{text: 'New Library', value: 'new'}],
+    libraries: [],
+    selectedLibrary: null,
   }),
   watch: {
-    selectedLibrary(value) {
-      if (value === 'new') {
-        this.$nextTick(() => this.selectedLibrary = null)
+    selectedLibrary(value, oldValue) {
+      if (value.id === 'new') {
+        this.$nextTick(() => this.selectedLibrary = oldValue)
         this.newLibraryDialogOpen = true
       }
     },
   },
-  mounted() {
-    this.updateLibraries()
+  computed: {
+    librariesSelect() {
+      return this.libraries.concat([
+        {name: 'New Library', id: 'new'}
+      ])
+    }
+  },
+  async mounted() {
+    await this.updateLibraries()
+    if (this.libraries.length > 0) {
+      this.selectedLibrary = this.libraries[0]
+    }
   },
   methods: {
     async createLibrary() {
@@ -74,12 +89,7 @@ export default {
 
     },
     async updateLibraries() {
-      const libraries = (await axios.$get('/library')).map(library => ({
-        text: library.name,
-        value: library.id,
-      }))
-      libraries.push({text: 'New Library', value: 'new'})
-      this.libraries = libraries
+      this.libraries = await axios.$get('/library')
     }
   }
 }

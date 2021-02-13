@@ -18,7 +18,7 @@ if [ "$1" = "worker" ]; then
   done
 elif [ "$1" = "scheduler" ]; then
   wait-for-it app:80 -t 3600
-  exec_as_www_data php artisan cron --interval 10 -q
+  exec_as_www_data php artisan cron --interval 10
 else
   composer install
 

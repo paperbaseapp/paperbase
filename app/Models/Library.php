@@ -13,6 +13,7 @@ use Ramsey\Collection\Collection;
  * @package App\Models
  * @property string id
  * @property string name
+ * @property bool needs_sync
  * @property User owner
  * @property Document[]|Collection documents
  */
@@ -21,11 +22,22 @@ class Library extends Model
     use HasFactory;
     use UsesPrimaryUuid;
 
+    protected $visible = [
+        'id',
+        'name',
+        'needs_sync',
+    ];
+
     protected static function booted()
     {
         static::created(function (Library $library) {
             mkdir($library->getAbsolutePath());
         });
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return User::current()->libraries()->where('id', $value)->firstOrFail();
     }
 
     public function owner()

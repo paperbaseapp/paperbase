@@ -4,7 +4,6 @@
 namespace App\Http\Controllers;
 
 
-use App\Models\AuthenticatedUser;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -33,7 +32,7 @@ class AuthController extends Controller
     public function verify(?User $user)
     {
         if ($user) {
-            return response()->json($user);
+            return $user;
         }
 
         throw new AccessDeniedHttpException();

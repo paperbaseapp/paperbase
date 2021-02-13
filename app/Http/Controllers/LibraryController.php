@@ -4,8 +4,10 @@
 namespace App\Http\Controllers;
 
 
+use App\Jobs\SyncLibraryJob;
 use App\Models\Library;
 use App\Models\User;
+use Imtigger\LaravelJobStatus\JobStatus;
 
 class LibraryController extends Controller
 {
@@ -26,6 +28,18 @@ class LibraryController extends Controller
     public function getAll()
     {
         return User::current()->libraries->sortBy('name', SORT_NATURAL|SORT_FLAG_CASE)->values();
+    }
+
+    public function get(Library $library)
+    {
+        return $library;
+    }
+
+    public function sync(Library $library)
+    {
+        $job = new SyncLibraryJob($library);
+        dispatch($job);
+        return response()->json(JobStatus::query()->whereKey($job->getJobStatusId())->firstOrFail());
     }
 }
 

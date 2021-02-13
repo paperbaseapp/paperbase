@@ -1,5 +1,9 @@
 import {default as BaseAxios} from 'axios'
 
+/**
+ * @type {AxiosInstance}
+ * @property {function} $get
+ */
 const axios = BaseAxios.create({
   baseURL: '/api/v1',
 })
