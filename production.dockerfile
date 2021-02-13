@@ -43,4 +43,4 @@ RUN apt-get install -y poppler-utils ocrmypdf tesseract-ocr-deu
 
 RUN mv /app/storage /app/storage.dist
 
-ENTRYPOINT ["/app/docker/entrypoint.dev.sh"]
+ENTRYPOINT ["/app/docker/entrypoint.sh"]
