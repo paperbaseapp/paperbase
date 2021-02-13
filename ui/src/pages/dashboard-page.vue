@@ -63,13 +63,15 @@ export default {
         await axios.$post('/library', {
           name: this.newLibraryName,
         })
+        await this.updateLibraries()
+        this.newLibraryDialogOpen = false
       } catch (e) {
         console.error(e)
         if (e.response.data === 402) {
           this.error = ['Please pick another name']
         }
       }
-      await this.updateLibraries()
+
     },
     async updateLibraries() {
       const libraries = (await axios.$get('/library')).map(library => ({
