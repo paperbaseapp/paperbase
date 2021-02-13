@@ -2,12 +2,10 @@
 
 namespace App\Models;
 
+use App\Jobs\GenerateThumbnailsJob;
 use App\Models\Traits\UsesPrimaryUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use JetBrains\PhpStorm\Pure;
-use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * Class Document
@@ -41,6 +39,10 @@ class Document extends Model
             if ($document->hasThumbnail()) {
                 unlink($document->getThumbnailPath());
             }
+        });
+
+        static::created(function (Document $document) {
+            dispatch(new GenerateThumbnailsJob($document));
         });
     }
 

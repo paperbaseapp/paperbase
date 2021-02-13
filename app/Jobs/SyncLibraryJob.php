@@ -10,8 +10,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\DB;
 use Imtigger\LaravelJobStatus\Trackable;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Symfony\Component\Filesystem\Filesystem;
 
 class SyncLibraryJob implements ShouldQueue
@@ -41,8 +42,8 @@ class SyncLibraryJob implements ShouldQueue
     public function handle()
     {
         $filesystem = app(Filesystem::class);
-        $libraryDirectoryIterator = new \RecursiveDirectoryIterator($this->library->getAbsolutePath(), \RecursiveDirectoryIterator::SKIP_DOTS);
-        $libraryIterator = new \RecursiveIteratorIterator($libraryDirectoryIterator);
+        $libraryDirectoryIterator = new RecursiveDirectoryIterator($this->library->getAbsolutePath(), RecursiveDirectoryIterator::SKIP_DOTS);
+        $libraryIterator = new RecursiveIteratorIterator($libraryDirectoryIterator);
 
         $changedDocuments = [];
         $changesDetected = false; // For dry run
@@ -71,6 +72,7 @@ class SyncLibraryJob implements ShouldQueue
                         $existingDocument->last_hash = $hash;
                         $existingDocument->save();
                         $changedDocuments[] = $existingDocument->only(['id', 'path', 'title']);
+                        dispatch(new GenerateThumbnailsJob($existingDocument));
                     }
                 }
             } else if ($this->checkSyncNeededOnly) {
@@ -110,7 +112,7 @@ class SyncLibraryJob implements ShouldQueue
                 }
             }
 
-            $this->incrementProgress(1, count($files) / 100);
+            $this->incrementProgress(1, max(count($files) / 100, 1));
         }
 
         $this->setProgressNow($this->progressMax - 1);
