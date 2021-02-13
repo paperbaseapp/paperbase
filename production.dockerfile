@@ -15,19 +15,32 @@ RUN yarn install \
     && mv /app/public/index.html /app/public/ui-index.html \
     && rm -rf /app/ui
 
-# Stage 3: Service image
-FROM registry.gitlab.timoschwarzer.com/timoschwarzer/docker-nginx-php-fpm:7.4
-
-WORKDIR /app
-
-RUN apk add --no-cache libzip-dev icu-dev gmp-dev $PHPIZE_DEPS \
     && docker-php-ext-install pdo pgsql pdo_pgsql zip bcmath intl gmp \
     && pecl install redis \
     && docker-php-ext-enable redis
 
+# Final stage
+FROM php:8.0-apache
+
+ENV APACHE_DOCUMENT_ROOT /app/public
+WORKDIR /app
+
 COPY --from=stage2 /app /app
-COPY ./docker/nginx/* /nginx/
+
+RUN apt-get update -y \
+    && a2enmod rewrite \
+    && apt-get -y install libpq-dev libzip-dev libfreetype6-dev \
+            libjpeg62-turbo-dev libpng-dev wait-for-it git unzip libicu-dev libgmp-dev \
+    && docker-php-ext-install pdo pgsql pdo_pgsql zip bcmath intl gmp \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
+    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+RUN apt-get install -y poppler-utils ocrmypdf tesseract-ocr-deu
+# TODO: add more languages with the tesseract-ocr-LANGUAGE
+# https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html
 
 RUN mv /app/storage /app/storage.dist
 
-ENTRYPOINT ["/app/docker/entrypoint.sh"]
+ENTRYPOINT ["/app/docker/entrypoint.dev.sh"]
