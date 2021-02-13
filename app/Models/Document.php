@@ -35,6 +35,15 @@ class Document extends Model
         'last_hash',
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function (Document $document) {
+            if ($document->hasThumbnail()) {
+                unlink($document->getThumbnailPath());
+            }
+        });
+    }
+
     public function library()
     {
         return $this->belongsTo(Library::class);
@@ -43,6 +52,16 @@ class Document extends Model
     public function getAbsolutePath(): string
     {
         return join_path($this->library->getAbsolutePath(), $this->path);
+    }
+
+    public function getThumbnailPath(): string
+    {
+        return join_path(storage_path('thumbnails'), $this->id . '.jpg');
+    }
+
+    public function hasThumbnail()
+    {
+        return file_exists($this->getThumbnailPath());
     }
 
     public function existsInFilesystem()
