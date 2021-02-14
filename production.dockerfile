@@ -35,7 +35,8 @@ RUN apt-get update -y \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf\
+    && echo "www-data ALL=NOPASSWD:SETENV: /app/scripts/fix-permissions.sh" >> /etc/sudoers.d/paperprism
 
 RUN apt-get install -y poppler-utils ocrmypdf tesseract-ocr-deu
 # TODO: add more languages with the tesseract-ocr-LANGUAGE

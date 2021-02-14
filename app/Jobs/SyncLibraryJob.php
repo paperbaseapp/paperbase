@@ -41,6 +41,10 @@ class SyncLibraryJob implements ShouldQueue
      */
     public function handle()
     {
+        if (!$this->checkSyncNeededOnly) {
+            exec('sudo /app/scrips/fix-permissions.sh');
+        }
+
         $filesystem = app(Filesystem::class);
         $libraryDirectoryIterator = new RecursiveDirectoryIterator($this->library->getAbsolutePath(), RecursiveDirectoryIterator::SKIP_DOTS);
         $libraryIterator = new RecursiveIteratorIterator($libraryDirectoryIterator);
