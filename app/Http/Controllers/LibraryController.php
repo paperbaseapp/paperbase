@@ -9,6 +9,9 @@ use App\Models\Library;
 use App\Models\Stateless\LibraryNode;
 use App\Models\User;
 use Imtigger\LaravelJobStatus\JobStatus;
+use SplFileInfo;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Mime\MimeTypes;
 
 class LibraryController extends Controller
 {
@@ -43,9 +46,8 @@ class LibraryController extends Controller
         return response()->json(JobStatus::query()->whereKey($job->getJobStatusId())->firstOrFail());
     }
 
-    public function browse(Library $library)
+    public function browse(Library $library, string $path = '')
     {
-        $path = request('path', '/');
         $items = collect($library->browseDirectory($path))
             ->map->jsonSerialize()
             ->sortBy('basename', SORT_NATURAL | SORT_FLAG_CASE)
@@ -58,6 +60,18 @@ class LibraryController extends Controller
             'items' => $items,
             'parent_path' => $parentPath,
         ]);
+    }
+
+    public function downloadFile(Library $library, string $path)
+    {
+        if ($library->hasFile($path)) {
+            $fileInfo = new SplFileInfo($library->getAbsolutePath($path));
+            return response()->download($fileInfo, $fileInfo->getBasename(), [
+                'Content-Type' => MimeTypes::getDefault()->guessMimeType($library->getAbsolutePath($path)),
+            ], 'inline');
+        }
+
+        throw new NotFoundHttpException('File not found');
     }
 }
 

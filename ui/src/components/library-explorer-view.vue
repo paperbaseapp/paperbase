@@ -68,6 +68,19 @@
         </v-data-iterator>
       </v-scroll-x-transition>
     </v-card>
+
+    <v-dialog v-model="documentViewerDialogOpen" fullscreen transition="dialog-bottom-transition">
+      <div v-if="!!documentViewerNode" class="fill-height d-flex flex-column">
+        <v-toolbar dense class="flex-grow-0">
+          <v-toolbar-title>{{ documentViewerNode.basename }}</v-toolbar-title>
+          <v-spacer />
+          <v-btn icon @click="documentViewerDialogOpen = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-toolbar>
+        <document-viewer class="flex-grow-1" :library-id="library.id" :path="documentViewerNode.path" />
+      </div>
+    </v-dialog>
   </div>
 </template>
 
@@ -75,10 +88,11 @@
   import {axios} from '@/lib/axios'
   import {formatsBytes} from '@/lib/mixins/formatsBytes'
   import LibraryNodeView from '@/components/library-node-view'
+  import DocumentViewer from '@/components/document-viewer'
 
   export default {
     name: 'library-explorer-view',
-    components: {LibraryNodeView},
+    components: {DocumentViewer, LibraryNodeView},
     mixins: [formatsBytes],
     props: {
       library: Object,
@@ -96,6 +110,8 @@
         page: 1,
         itemsPerPage: -1,
       },
+      documentViewerDialogOpen: false,
+      documentViewerNode: null,
     }),
     watch: {
       '$route.query.path'(path) {
@@ -127,11 +143,7 @@
         this.loading = true
 
         try {
-          const data = await axios.$get(`/library/${this.library.id}/browse`, {
-            params: {
-              path: this.currentPath,
-            }
-          })
+          const data = await axios.$get(`/library/${this.library.id}/browse/${this.currentPath}`)
           this.items = data.items
           this.parentPath = data.parent_path
         } catch (e) {
@@ -153,9 +165,10 @@
       navigateToItem(item) {
         if (item.type === 'directory') {
           this.navigateToPath(item.path)
+        } else if (item.document !== null) {
+          this.documentViewerNode = item
+          this.documentViewerDialogOpen = true
         }
-
-        // TODO: Handle files
       },
     },
   }

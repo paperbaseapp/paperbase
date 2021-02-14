@@ -109,4 +109,14 @@ class Library extends Model
     {
         return rtrim(canonicalize_path($this->getAbsolutePath($relativePath)), '/') === $this->getAbsolutePath();
     }
+
+    public function hasFile(string $relativePath)
+    {
+        return is_file($this->getAbsolutePath($relativePath));
+    }
+
+    public function hasDirectory(string $relativePath)
+    {
+        return is_dir($this->getAbsolutePath($relativePath));
+    }
 }
