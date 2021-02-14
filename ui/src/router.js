@@ -6,7 +6,7 @@ Vue.use(VueRouter)
 
 const routes = [
   {
-    path: '/:libraryId?',
+    path: '/browse/:libraryId?',
     name: 'browse',
     meta: {title: 'Browse'},
     component: require('./pages/browse-page').default,

@@ -2,12 +2,11 @@
   <v-container>
     <portal to="app-bar-end">
       <v-select
-        v-model="selectedLibrary"
+        v-model="selectedLibraryId"
         placeholder="Select Library"
         solo
         flat
         hide-details
-        return-object
         :items="librariesSelect"
         item-text="name"
         item-value="id"
@@ -34,7 +33,7 @@
       </v-card>
     </v-dialog>
 
-    <library-view v-if="!!selectedLibrary" :library-id="selectedLibrary.id" />
+    <library-view v-if="!!realSelectedLibraryId" :library-id="realSelectedLibraryId" />
   </v-container>
 </template>
 
@@ -45,18 +44,23 @@ import LibraryView from '@/components/library-view'
 export default {
   name: 'browse-page',
   components: {LibraryView},
-  data: () => ({
+  data: vm => ({
     newLibraryDialogOpen: false,
     newLibraryName: '',
     libraries: [],
-    selectedLibrary: null,
+    selectedLibraryId: vm.$route.params.libraryId,
+    realSelectedLibraryId: vm.$route.params.libraryId,
   }),
   watch: {
-    selectedLibrary(value, oldValue) {
-      if (value.id === 'new') {
-        this.$nextTick(() => this.selectedLibrary = oldValue)
+    selectedLibraryId(value) {
+      if (value === 'new') {
         this.newLibraryDialogOpen = true
+      } else {
+        this.$router.push({params: {libraryId: value}})
       }
+    },
+    '$route.params.libraryId'(value) {
+      this.realSelectedLibraryId = value
     },
   },
   computed: {
@@ -68,9 +72,6 @@ export default {
   },
   async mounted() {
     await this.updateLibraries()
-    if (this.libraries.length > 0) {
-      this.selectedLibrary = this.libraries[0]
-    }
   },
   methods: {
     async createLibrary() {
