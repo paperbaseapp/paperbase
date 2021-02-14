@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string text_content
  * @property string last_hash
  * @property Carbon last_mtime
+ * @property string ocr_status
  * @property Library library
  * @property bool needs_sync
  */
