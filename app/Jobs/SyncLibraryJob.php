@@ -15,7 +15,6 @@ use Imtigger\LaravelJobStatus\Trackable;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
-use Symfony\Component\Filesystem\Filesystem;
 
 class SyncLibraryJob implements ShouldQueue
 {
@@ -98,6 +97,7 @@ class SyncLibraryJob implements ShouldQueue
                         $existingDocument->save();
                         $changedDocuments[] = $existingDocument->only(['id', 'path', 'title']);
                         dispatch(new GenerateThumbnailsJob($existingDocument));
+                        dispatch(new GenerateOCRJob($existingDocument));
                     }
                 }
             } else if ($this->checkSyncNeededOnly) {

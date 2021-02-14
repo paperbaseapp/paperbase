@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\GenerateOCRJob;
 use App\Jobs\GenerateThumbnailsJob;
 use App\Models\Traits\UsesPrimaryUuid;
 use Carbon\Carbon;
@@ -29,6 +30,8 @@ class Document extends Model
     public const OCR_PENDING = 'pending';
     public const OCR_DONE = 'done';
     public const OCR_UNAVAILABLE = 'unavailable';
+    public const OCR_FAILED = 'failed';
+    public const OCR_NOT_REQUIRED = 'not_required';
 
     protected $appends = [
         'thumbnail_url',
@@ -58,6 +61,7 @@ class Document extends Model
 
         static::created(function (Document $document) {
             dispatch(new GenerateThumbnailsJob($document));
+            dispatch(new GenerateOCRJob($document));
         });
     }
 
