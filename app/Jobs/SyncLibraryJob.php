@@ -15,10 +15,11 @@ use Imtigger\LaravelJobStatus\Trackable;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
+use Throwable;
 
 class SyncLibraryJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable, Failsafe;
 
     public const DETECTION_MODE_MTIME = 'mtime';
     public const DETECTION_MODE_HASH = 'hash';
@@ -39,13 +40,7 @@ class SyncLibraryJob implements ShouldQueue
         $this->prepareStatus();
     }
 
-    /**
-     * Execute the job.
-     *
-     * @return void
-     * @throws Exception
-     */
-    public function handle()
+    private function failsafeHandle()
     {
         if (!$this->checkSyncNeededOnly) {
             exec('sudo /app/scripts/fix-permissions.sh');
@@ -82,9 +77,9 @@ class SyncLibraryJob implements ShouldQueue
                 // We already have a record in our database, so let's update
                 // the hash if necessary…
                 if (
-                    $this->detectionMode === self::DETECTION_MODE_MTIME
-                        ? $existingDocument->last_mtime->notEqualTo($mtime)
-                        : $existingDocument->last_hash !== $getHash()
+                $this->detectionMode === self::DETECTION_MODE_MTIME
+                    ? $existingDocument->last_mtime->notEqualTo($mtime)
+                    : $existingDocument->last_hash !== $getHash()
                 ) {
                     if ($this->checkSyncNeededOnly) {
                         $changesDetected = true;
@@ -168,5 +163,11 @@ class SyncLibraryJob implements ShouldQueue
         if (!$this->checkSyncNeededOnly) {
             $this->setOutput($changedDocuments);
         }
+    }
+
+    private function failed(Throwable $exception)
+    {
+        $this->library->needs_sync = true;
+        $this->library->save();
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Traits\UsesPrimaryUuid;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use SplFileInfo;
 
 /**
  * Class Document
@@ -78,6 +79,11 @@ class Document extends Model
     public function getAbsolutePath(): string
     {
         return join_path($this->library->getAbsolutePath(), $this->path);
+    }
+
+    public function getFileInfo(): SplFileInfo
+    {
+        return new SplFileInfo($this->getAbsolutePath());
     }
 
     public function getThumbnailPath(): string
