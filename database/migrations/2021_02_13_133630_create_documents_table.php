@@ -26,9 +26,11 @@ class CreateDocumentsTable extends Migration
 
             $table->string('path');
             $table->string('last_hash');
+            $table->dateTime('last_mtime');
             $table->string('title');
             $table->string('ocr_status')->default(Document::OCR_UNAVAILABLE);
             $table->longText('text_content')->default('');
+            $table->boolean('needs_sync')->default(false);
 
             $table->unique(['library_id', 'path']);
 

@@ -6,10 +6,10 @@ Vue.use(VueRouter)
 
 const routes = [
   {
-    path: '/',
-    name: 'dashboard',
-    meta: {title: 'Dashboard'},
-    component: require('./pages/dashboard-page').default,
+    path: '/:libraryId?',
+    name: 'browse',
+    meta: {title: 'Browse'},
+    component: require('./pages/browse-page').default,
   },
   {
     path: '/login',
@@ -21,7 +21,7 @@ const routes = [
   // Catchall route
   {
     path: '*',
-    redirect: {name: 'dashboard'},
+    redirect: {name: 'browse'},
     meta: {catchall: true},
   },
 ]

@@ -43,7 +43,7 @@ import {axios} from '@/lib/axios'
 import LibraryView from '@/components/library-view'
 
 export default {
-  name: 'dashboard-page',
+  name: 'browse-page',
   components: {LibraryView},
   data: () => ({
     newLibraryDialogOpen: false,
@@ -86,7 +86,6 @@ export default {
           this.error = ['Please pick another name']
         }
       }
-
     },
     async updateLibraries() {
       this.libraries = await axios.$get('/library')

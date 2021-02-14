@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Jobs\GenerateThumbnailsJob;
 use App\Models\Traits\UsesPrimaryUuid;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,8 +15,10 @@ use Illuminate\Database\Eloquent\Model;
  * @property string path The path inside the library
  * @property string title
  * @property string text_content
- * @property string $last_hash
+ * @property string last_hash
+ * @property Carbon last_mtime
  * @property Library library
+ * @property bool needs_sync
  */
 class Document extends Model
 {
@@ -26,11 +29,22 @@ class Document extends Model
     public const OCR_DONE = 'done';
     public const OCR_UNAVAILABLE = 'unavailable';
 
+    protected $appends = [
+        'thumbnail_url',
+    ];
+
+    protected $dates = [
+        'created_at',
+        'updated_at',
+        'last_mtime',
+    ];
+
     protected $visible = [
         'id',
         'path',
         'title',
         'last_hash',
+        'thumbnail_url',
     ];
 
     protected static function booted()
@@ -44,6 +58,11 @@ class Document extends Model
         static::created(function (Document $document) {
             dispatch(new GenerateThumbnailsJob($document));
         });
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return User::current()->documents()->where('documents.id', $value)->firstOrFail();
     }
 
     public function library()
@@ -74,6 +93,15 @@ class Document extends Model
     public function getCalculatedHash(): string
     {
         return self::hashFile($this->getAbsolutePath());
+    }
+
+    public function getThumbnailUrlAttribute()
+    {
+        if (!$this->hasThumbnail()) {
+            return null;
+        }
+
+        return route('document/thumbnail', ['document' => $this->id]);
     }
 
     public static function hashFile(string $path): string

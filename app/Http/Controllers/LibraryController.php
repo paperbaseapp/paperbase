@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\SyncLibraryJob;
 use App\Models\Library;
+use App\Models\Stateless\LibraryNode;
 use App\Models\User;
 use Imtigger\LaravelJobStatus\JobStatus;
 
@@ -40,6 +41,23 @@ class LibraryController extends Controller
         $job = new SyncLibraryJob($library);
         dispatch($job);
         return response()->json(JobStatus::query()->whereKey($job->getJobStatusId())->firstOrFail());
+    }
+
+    public function browse(Library $library)
+    {
+        $path = request('path', '/');
+        $items = collect($library->browseDirectory($path))
+            ->map->jsonSerialize()
+            ->sortBy('basename', SORT_NATURAL | SORT_FLAG_CASE)
+            ->sortBy('type', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $parentPath = $library->getParentRelativePath($path);
+
+        return response()->json([
+            'items' => $items,
+            'parent_path' => $parentPath,
+        ]);
     }
 }
 

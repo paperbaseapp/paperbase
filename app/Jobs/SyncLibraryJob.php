@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Document;
 use App\Models\Library;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,21 +14,27 @@ use Illuminate\Queue\SerializesModels;
 use Imtigger\LaravelJobStatus\Trackable;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use SplFileInfo;
 use Symfony\Component\Filesystem\Filesystem;
 
 class SyncLibraryJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
 
+    public const DETECTION_MODE_MTIME = 'mtime';
+    public const DETECTION_MODE_HASH = 'hash';
+
     /**
      * Create a new job instance.
      *
      * @param Library $library
      * @param bool $checkSyncNeededOnly Don't import or sync documents but only check if the library needs a sync
+     * @param string $detectionMode hash is slower
      */
     public function __construct(
         protected Library $library,
         protected bool $checkSyncNeededOnly = false,
+        protected string $detectionMode = self::DETECTION_MODE_MTIME
     )
     {
         $this->prepareStatus();
@@ -42,10 +49,9 @@ class SyncLibraryJob implements ShouldQueue
     public function handle()
     {
         if (!$this->checkSyncNeededOnly) {
-            exec('sudo /app/scrips/fix-permissions.sh');
+            exec('sudo /app/scripts/fix-permissions.sh');
         }
 
-        $filesystem = app(Filesystem::class);
         $libraryDirectoryIterator = new RecursiveDirectoryIterator($this->library->getAbsolutePath(), RecursiveDirectoryIterator::SKIP_DOTS);
         $libraryIterator = new RecursiveIteratorIterator($libraryDirectoryIterator);
 
@@ -55,11 +61,19 @@ class SyncLibraryJob implements ShouldQueue
         $files = collect($libraryIterator);
         $this->setProgressMax(count($files) + 1);
 
-        /** @var \SplFileInfo $info */
+        /** @var SplFileInfo $info */
         foreach ($files as $info) {
             $absolutePath = $info->getPathname();
-            $path = rtrim($filesystem->makePathRelative($absolutePath, $this->library->getAbsolutePath()), '/');
-            $hash = Document::hashFile($absolutePath);
+            $path = $this->library->getRelativePath($info->getRealPath());
+
+            $mtime = Carbon::createFromTimestamp($info->getMTime());
+            $computedHash = null;
+            $getHash = function () use ($absolutePath, &$computedHash) {
+                if ($computedHash === null) {
+                    $computedHash = Document::hashFile($absolutePath);
+                }
+                return $computedHash;
+            };
 
             // Check if we have stored a document in DB at this path...
             /** @var Document $existingDocument */
@@ -68,22 +82,26 @@ class SyncLibraryJob implements ShouldQueue
             if ($existingDocument !== null) {
                 // We already have a record in our database, so let's update
                 // the hash if necessary…
-                if ($existingDocument->last_hash !== $hash) {
+                if (
+                    $this->detectionMode === self::DETECTION_MODE_MTIME
+                        ? $existingDocument->last_mtime->notEqualTo($mtime)
+                        : $existingDocument->last_hash !== $getHash()
+                ) {
                     if ($this->checkSyncNeededOnly) {
                         $changesDetected = true;
-                        break;
+                        $existingDocument->needs_sync = true;
+                        $existingDocument->save();
                     } else {
-                        $existingDocument->last_hash = $hash;
+                        $existingDocument->last_hash = $getHash();
+                        $existingDocument->last_mtime = $mtime;
+                        $existingDocument->needs_sync = false;
                         $existingDocument->save();
                         $changedDocuments[] = $existingDocument->only(['id', 'path', 'title']);
                         dispatch(new GenerateThumbnailsJob($existingDocument));
                     }
                 }
             } else if ($this->checkSyncNeededOnly) {
-                // There's a new file but we are checking the library dirty state
-                // so just update $changesDetected and exit the loop
                 $changesDetected = true;
-                break;
             } else {
                 // We didn't find a document record for this path. There are now multiple possibilities:
                 // 1. it's a brand new document → create a record
@@ -93,7 +111,7 @@ class SyncLibraryJob implements ShouldQueue
                 // Find the first document record with the same hash, that does not exist in fileystem
                 $movedDocument = null;
                 /** @var Document $document */
-                foreach ($this->library->documents()->where('last_hash', $hash)->get() as $document) {
+                foreach ($this->library->documents()->where('last_hash', $getHash())->get() as $document) {
                     if (!$document->existsInFilesystem()) {
                         $movedDocument = $document;
                     }
@@ -102,6 +120,7 @@ class SyncLibraryJob implements ShouldQueue
                 if ($movedDocument) {
                     // If our search for a old document record was successful…
                     $movedDocument->path = $path;
+                    $movedDocument->needs_sync = false;
                     $movedDocument->save();
                     $changedDocuments[] = $movedDocument->only(['id', 'path', 'title']);
                 } else {
@@ -110,7 +129,8 @@ class SyncLibraryJob implements ShouldQueue
                     $document = new Document();
                     $document->title = basename($absolutePath);
                     $document->path = $path;
-                    $document->last_hash = $hash;
+                    $document->last_hash = $getHash();
+                    $document->last_mtime = $mtime;
                     $this->library->documents()->save($document);
                     $changedDocuments[] = $document->only(['id', 'path', 'title']);
                 }
@@ -127,7 +147,8 @@ class SyncLibraryJob implements ShouldQueue
             if (!$document->existsInFilesystem()) {
                 if ($this->checkSyncNeededOnly) {
                     $changesDetected = true;
-                    break;
+                    $document->needs_sync = true;
+                    $document->save();
                 } else {
                     $document->delete();
                 }

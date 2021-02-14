@@ -28,7 +28,7 @@
         immediate: true,
         handler(isLoggedIn) {
           if (isLoggedIn) {
-            this.$router.replace(this.$store.state.redirectRoute || {name: 'dashboard'})
+            this.$router.replace(this.$store.state.redirectRoute || {name: 'browse'})
           }
         }
       }

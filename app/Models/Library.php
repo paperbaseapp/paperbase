@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Stateless\LibraryNode;
 use App\Models\Traits\UsesPrimaryUuid;
+use DirectoryIterator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Ramsey\Collection\Collection;
+use SplFileInfo;
+use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * Class Library
@@ -31,6 +37,7 @@ class Library extends Model
     protected static function booted()
     {
         static::created(function (Library $library) {
+            Log::info($library->getAbsolutePath());
             mkdir($library->getAbsolutePath());
         });
     }
@@ -50,8 +57,56 @@ class Library extends Model
         return $this->hasMany(Document::class);
     }
 
-    public function getAbsolutePath()
+    public function getAbsolutePath(?string $toFile = null)
     {
-        return join_path(storage_path('libraries'), $this->id . '-' . Str::slug($this->name));
+        return $toFile === null
+            ? canonicalize_path(join_path(storage_path('libraries'), $this->id . '-' . Str::slug($this->name)))
+            : canonicalize_path(join_path($this->getAbsolutePath(), $toFile));
+    }
+
+    public function getRelativePath(string $absoluteFilePath)
+    {
+        $absoluteFilePath = canonicalize_path($absoluteFilePath);
+
+        if (!str_starts_with($absoluteFilePath, $this->getAbsolutePath())) {
+            throw new InvalidArgumentException('File ' . $absoluteFilePath . ' is not inside library ' . $this->id);
+        }
+
+        return ltrim(
+            rtrim(app(Filesystem::class)->makePathRelative($absoluteFilePath, $this->getAbsolutePath()), '/'),
+            '.',
+        );
+    }
+
+    public function browseDirectory(string $relativePath): \Generator
+    {
+        $path = $this->getAbsolutePath($relativePath);
+
+        if (!is_dir($path)) {
+            throw new InvalidArgumentException('directoryPath must be a directory');
+        }
+
+        $iterator = new DirectoryIterator($path);
+
+
+        /** @var SplFileInfo $item */
+        foreach ($iterator as $item) {
+            if (!$iterator->isDot()) {
+                yield new LibraryNode($this, $this->getRelativePath($item->getRealPath()));
+            }
+        }
+    }
+
+    public function getParentRelativePath(string $relativePath)
+    {
+        $fileInfo = new SplFileInfo($this->getAbsolutePath($relativePath));
+        return $this->isLibraryRootPath($relativePath)
+            ? null
+            : $this->getRelativePath($fileInfo->getPath());
+    }
+
+    public function isLibraryRootPath(string $relativePath)
+    {
+        return rtrim(canonicalize_path($this->getAbsolutePath($relativePath)), '/') === $this->getAbsolutePath();
     }
 }

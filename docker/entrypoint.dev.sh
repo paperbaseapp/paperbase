@@ -15,12 +15,7 @@ if [ "$1" = "worker" ]; then
   echo "Starting $(nproc --all) workers..."
 
   for i in $(seq $(nproc --all)); do
-    (
-      while true; do
-        run_as_www_data php artisan queue:work --tries=3 --delay=10 -vvv --stop-when-empty
-        sleep 1
-      done
-    ) &
+    run_as_www_data php artisan queue:listen --tries=3 --backoff=5 -vvv &
   done
   wait
 elif [ "$1" = "scheduler" ]; then

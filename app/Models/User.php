@@ -37,4 +37,9 @@ class User extends BaseModel implements Authenticatable
     {
         return $this->hasMany(Library::class, 'owner_id');
     }
+
+    public function documents()
+    {
+        return $this->hasManyThrough(Document::class, Library::class, 'owner_id');
+    }
 }

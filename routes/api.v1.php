@@ -13,6 +13,7 @@
 
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\LibraryController;
 use Illuminate\Routing\Router;
@@ -30,9 +31,15 @@ Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
     });
 
     $router->group(['prefix' => '/library'], function (Router $router) {
-       $router->post('/', [LibraryController::class, 'create']);
-       $router->get('/', [LibraryController::class, 'getAll']);
-       $router->get('/{library}', [LibraryController::class, 'get']);
-       $router->post('/{library}/sync', [LibraryController::class, 'sync']);
+        $router->post('/', [LibraryController::class, 'create']);
+        $router->get('/', [LibraryController::class, 'getAll']);
+        $router->get('/{library}', [LibraryController::class, 'get']);
+        $router->post('/{library}/sync', [LibraryController::class, 'sync']);
+        $router->get('/{library}/browse', [LibraryController::class, 'browse']);
+    });
+
+    $router->group(['prefix' => '/document'], function (Router $router) {
+        $router->get('/{document}', [DocumentController::class, 'get']);
+        $router->get('/{document}/thumbnail', [DocumentController::class, 'getThumbnail'])->name('document/thumbnail');
     });
 });

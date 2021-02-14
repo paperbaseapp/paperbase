@@ -8,6 +8,7 @@ import '@mdi/font/css/materialdesignicons.css'
 import {store} from './store'
 import {isTouchDevice} from '@/lib/isTouchDevice'
 import PortalVue from 'portal-vue'
+import './style/global.scss'
 
 Vue.config.productionTip = false
 

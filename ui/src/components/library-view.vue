@@ -8,8 +8,15 @@
         <v-icon left>mdi-sync</v-icon>
         Sync now
       </v-btn>
-      <v-progress-linear v-else color="white" :indeterminate="syncProgress === null || syncProgress === 0" :value="syncProgress || 0" />
+      <v-progress-linear
+        v-else
+        color="white"
+        :indeterminate="syncProgress === null || syncProgress === 0"
+        :value="syncProgress || 0"
+      />
     </v-alert>
+
+    <library-explorer-view ref="explorerView" :library="library" />
   </div>
   <throttled-spinner-container v-else />
 </template>
@@ -17,10 +24,14 @@
 <script>
   import ThrottledSpinnerContainer from '@/components/throttled-spinner-container'
   import {axios} from '@/lib/axios'
+  import LibraryExplorerView from '@/components/library-explorer-view'
 
   export default {
     name: 'library-view',
-    components: {ThrottledSpinnerContainer},
+    components: {
+      LibraryExplorerView,
+      ThrottledSpinnerContainer,
+    },
     props: {
       libraryId: String,
     },
@@ -47,13 +58,14 @@
         immediate: true,
         handler() {
           this.updateLibrary()
-        }
+        },
       },
       syncJob(job) {
         if (job.status === 'finished') {
           this.updateLibrary()
+          this.$refs.explorerView.fetch()
         }
-      }
+      },
     },
     methods: {
       async updateLibrary() {
@@ -63,8 +75,8 @@
         this.syncing = true
         const job = await this.$store.dispatch('startSyncLibraryJob', this.library.id)
         this.syncJobId = job.id
-      }
-    }
+      },
+    },
   }
 </script>
 
