@@ -48,8 +48,10 @@ class RouteServiceProvider extends ServiceProvider
     protected function configureRateLimiting()
     {
         RateLimiter::for('api', function (Request $request) {
-            if ($request->route()?->getName() === 'document/thumbnail') {
-                return null;
+            switch ($request->route()?->getName()) {
+                case 'document/thumbnail':
+                case 'search':
+                    return null;
             }
 
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());

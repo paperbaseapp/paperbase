@@ -9,15 +9,17 @@
   "license": "MIT",
   "require": {
     "php": "^8.0",
+    "ext-fileinfo": "*",
     "fideloper/proxy": "^4.4",
     "fruitcake/laravel-cors": "^2.0",
     "guzzlehttp/guzzle": "^7.0.1",
     "imtigger/laravel-job-status": "^1.2",
     "laravel/framework": "^8.12",
     "laravel/sanctum": "^2.8",
+    "laravel/scout": "^8.6",
     "laravel/tinker": "^2.5",
-    "symfony/filesystem": "^5.2",
-    "ext-fileinfo": "*"
+    "meilisearch/meilisearch-laravel-scout": "^0.12.4",
+    "symfony/filesystem": "^5.2"
   },
   "require-dev": {
     "facade/ignition": "^2.5",

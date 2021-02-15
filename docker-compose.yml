@@ -1,8 +1,9 @@
 version: '3'
 
 volumes:
-  db: {}
-  redis: {}
+  db: { }
+  redis: { }
+  meilisearch: { }
 
 services:
   reverse_proxy:
@@ -70,3 +71,12 @@ services:
     volumes:
       - redis:/data
     restart: on-failure
+  meilisearch:
+    image: getmeili/meilisearch
+    volumes:
+      - meilisearch:/data
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY}
+      MEILI_DB_PATH: '/data/database.ms'
+      MEILI_NO_ANALYTICS: 'true'
+      MEILI_NO_SENTRY: 'true'

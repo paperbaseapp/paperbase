@@ -8,6 +8,7 @@ use App\Models\Traits\UsesPrimaryUuid;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use SplFileInfo;
 
 /**
@@ -16,12 +17,12 @@ use SplFileInfo;
  * @property string id
  * @property string path The path inside the library
  * @property string title
- * @property string text_content
  * @property string last_hash
  * @property Carbon last_mtime
  * @property string ocr_status
  * @property Library library
  * @property bool needs_sync
+ * @property string library_id
  */
 class Document extends Model
 {
@@ -36,6 +37,7 @@ class Document extends Model
 
     protected $appends = [
         'thumbnail_url',
+        'directory_path',
     ];
 
     protected $dates = [
@@ -48,8 +50,10 @@ class Document extends Model
         'id',
         'path',
         'title',
+        'library_id',
         'last_hash',
         'thumbnail_url',
+        'directory_path',
     ];
 
     protected static function booted()
@@ -74,6 +78,16 @@ class Document extends Model
     public function library()
     {
         return $this->belongsTo(Library::class);
+    }
+
+    public function pages()
+    {
+        return $this->hasMany(DocumentPage::class);
+    }
+
+    public function getDirectoryPathAttribute()
+    {
+        return Str::beforeLast($this->path, '/');
     }
 
     public function getAbsolutePath(): string

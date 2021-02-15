@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Imtigger\LaravelJobStatus\Trackable;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -77,9 +78,9 @@ class SyncLibraryJob implements ShouldQueue
                 // We already have a record in our database, so let's update
                 // the hash if necessary…
                 if (
-                $this->detectionMode === self::DETECTION_MODE_MTIME
-                    ? $existingDocument->last_mtime->notEqualTo($mtime)
-                    : $existingDocument->last_hash !== $getHash()
+                    ($this->detectionMode === self::DETECTION_MODE_MTIME
+                        ? $existingDocument->last_mtime->notEqualTo($mtime)
+                        : $existingDocument->last_hash !== $getHash())
                 ) {
                     if ($this->checkSyncNeededOnly) {
                         $changesDetected = true;
@@ -147,6 +148,35 @@ class SyncLibraryJob implements ShouldQueue
                 } else {
                     $document->delete();
                 }
+            }
+        }
+
+        // Check Documents with needs_sync = true
+        /** @var Document $document */
+        foreach ($this->library->documents()->where('needs_sync', true)->get() as $document) {
+            $mtime = Carbon::createFromTimestamp($document->getFileInfo()->getMTime());
+            $computedHash = null;
+            $getHash = function () use ($document, &$computedHash) {
+                if ($computedHash === null) {
+                    $computedHash = Document::hashFile($document->getAbsolutePath());
+                }
+                return $computedHash;
+            };
+
+            if ($this->checkSyncNeededOnly) {
+                $changesDetected = true;
+
+                // We can exit the loop here because we don't make
+                // any modifications
+                break;
+            } else {
+                $document->last_hash = $getHash();
+                $document->last_mtime = $mtime;
+                $document->needs_sync = false;
+                $document->save();
+                $changedDocuments[] = $document->only(['id', 'path', 'title']);
+                dispatch(new GenerateThumbnailsJob($document));
+                dispatch(new GenerateOCRJob($document));
             }
         }
 

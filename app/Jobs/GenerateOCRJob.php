@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Document;
+use App\Models\DocumentPage;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Bus\Queueable;
@@ -31,12 +32,15 @@ class GenerateOCRJob implements ShouldQueue
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function failsafeHandle()
     {
         if (Str::of($this->document->getAbsolutePath())->lower()->endsWith('.pdf')) {
-            $text = $this->readPdfText();
+            $pages = $this->readPdfPages();
 
-            if (empty($text)) {
+            if (empty($pages)) {
                 $process = new Process([
                     'ocrmypdf',
                     '-l',
@@ -59,10 +63,11 @@ class GenerateOCRJob implements ShouldQueue
                 $this->document->last_hash = Document::hashFile($this->document->getAbsolutePath());
                 $this->document->last_mtime = Carbon::createFromTimestamp($this->document->getFileInfo()->getMTime());
                 $this->document->ocr_status = Document::OCR_DONE;
-                $text = $this->readPdfText();
+                $pages = $this->readPdfPages();
             }
 
-            $this->document->text_content = $text;
+            $this->document->pages()->delete();
+            $this->document->pages()->saveMany($pages);
             $this->document->save();
         } else {
             $this->document->ocr_status = Document::OCR_UNAVAILABLE;
@@ -70,7 +75,11 @@ class GenerateOCRJob implements ShouldQueue
         }
     }
 
-    public function readPdfText(): string
+    /**
+     * @return DocumentPage[]
+     * @throws Exception
+     */
+    public function readPdfPages(): array
     {
         $process = new Process([
             'pdftotext',
@@ -85,7 +94,24 @@ class GenerateOCRJob implements ShouldQueue
             throw new Exception('Could not generate OCR for ' . $this->document->title . "\n" . $process->getErrorOutput());
         }
 
-        return trim($process->getOutput(), " \t\n\r\0\x0B\x0C");
+        $pages = [];
+
+        // pdftotext prints a form feed character (\f) after every page
+        $pageNumber = 1;
+        foreach (explode("\f", $process->getOutput()) as $pageText) {
+            $text = trim($pageText);
+
+            if (!empty($text)) {
+                $pages[] = new DocumentPage([
+                    'text_content' => $text,
+                    'page' => $pageNumber,
+                ]);
+            }
+
+            $pageNumber++;
+        }
+
+        return $pages;
     }
 
     public function failed(Throwable $exception)

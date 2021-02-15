@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 
 
 use App\Jobs\SyncLibraryJob;
+use App\Models\DocumentPage;
 use App\Models\Library;
-use App\Models\Stateless\LibraryNode;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Imtigger\LaravelJobStatus\JobStatus;
+use MeiliSearch\Endpoints\Indexes;
 use SplFileInfo;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Mime\MimeTypes;
@@ -31,7 +33,7 @@ class LibraryController extends Controller
 
     public function getAll()
     {
-        return User::current()->libraries->sortBy('name', SORT_NATURAL|SORT_FLAG_CASE)->values();
+        return User::current()->libraries->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
     }
 
     public function get(Library $library)
@@ -72,6 +74,21 @@ class LibraryController extends Controller
         }
 
         throw new NotFoundHttpException('File not found');
+    }
+
+    public function search(Library $library)
+    {
+        $query = request('query', '');
+        return DocumentPage::search($query, function (Indexes $meilisearch, $query, $options) use ($library) {
+            $options['filters'] = 'library_id="' . $library->id . '"';
+            $options['attributesToCrop'] = ['text_content:50'];
+            $options['attributesToHighlight'] = ['text_content', 'document_title'];
+            return $meilisearch->search($query, $options);
+        })
+            ->take(20)
+            ->query(fn(Builder $query) => $query->with('document'))
+            ->get()
+            ->makeVisible('search_metadata');
     }
 }
 

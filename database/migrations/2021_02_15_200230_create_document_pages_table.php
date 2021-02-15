@@ -1,12 +1,11 @@
 <?php
 
 use App\Models\Document;
-use App\Models\Library;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateDocumentsTable extends Migration
+class CreateDocumentPagesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -15,23 +14,19 @@ class CreateDocumentsTable extends Migration
      */
     public function up()
     {
-        Schema::create('documents', function (Blueprint $table) {
+        Schema::create('document_pages', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
+            $table->unsignedInteger('page');
+            $table->longText('text_content')->default('');
+
             $table
-                ->foreignIdFor(Library::class)
+                ->foreignIdFor(Document::class)
                 ->constrained()
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
-            $table->string('path');
-            $table->string('last_hash');
-            $table->dateTime('last_mtime');
-            $table->string('title');
-            $table->string('ocr_status')->default(Document::OCR_PENDING);
-            $table->boolean('needs_sync')->default(false);
-
-            $table->unique(['library_id', 'path']);
+            $table->unique(['document_id', 'page']);
 
             $table->timestamps();
         });
@@ -44,6 +39,6 @@ class CreateDocumentsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('documents');
+        Schema::dropIfExists('document_pages');
     }
 }

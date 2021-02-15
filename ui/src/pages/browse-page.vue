@@ -33,6 +33,8 @@
       </v-card>
     </v-dialog>
 
+    <library-search-bar :library-id="selectedLibraryId" />
+
     <library-view v-if="!!realSelectedLibraryId" :library-id="realSelectedLibraryId" />
   </v-container>
 </template>
@@ -40,10 +42,11 @@
 <script>
 import {axios} from '@/lib/axios'
 import LibraryView from '@/components/library-view'
+import LibrarySearchBar from '@/components/library-search-bar'
 
 export default {
   name: 'browse-page',
-  components: {LibraryView},
+  components: {LibrarySearchBar, LibraryView},
   data: vm => ({
     newLibraryDialogOpen: false,
     newLibraryName: '',
