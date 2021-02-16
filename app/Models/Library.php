@@ -7,6 +7,7 @@ use App\Models\Traits\UsesPrimaryUuid;
 use DirectoryIterator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -118,5 +119,10 @@ class Library extends Model
     public function hasDirectory(string $relativePath)
     {
         return is_dir($this->getAbsolutePath($relativePath));
+    }
+
+    public function getLock(int $seconds = 0)
+    {
+        return Cache::lock('library.' . $this->id, $seconds);
     }
 }

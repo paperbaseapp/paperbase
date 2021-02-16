@@ -4,10 +4,12 @@ namespace App\Jobs;
 
 use App\Models\Library;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Imtigger\LaravelJobStatus\Trackable;
 
 class SyncAllLibrariesJob implements ShouldQueue

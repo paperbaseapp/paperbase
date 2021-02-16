@@ -8,6 +8,7 @@ use App\Models\Traits\UsesPrimaryUuid;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use SplFileInfo;
 
@@ -62,11 +63,6 @@ class Document extends Model
             if ($document->hasThumbnail()) {
                 unlink($document->getThumbnailPath());
             }
-        });
-
-        static::created(function (Document $document) {
-            dispatch(new GenerateThumbnailsJob($document));
-            dispatch(new GenerateOCRJob($document));
         });
     }
 
@@ -132,5 +128,10 @@ class Document extends Model
     public static function hashFile(string $path): string
     {
         return hash_file('sha256', $path);
+    }
+
+    public function getLock(int $seconds = 0)
+    {
+        return Cache::lock('document.' . $this->id, $seconds);
     }
 }

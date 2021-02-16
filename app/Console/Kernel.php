@@ -5,6 +5,7 @@ namespace App\Console;
 use App\Jobs\SyncAllLibrariesJob;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Cache;
 
 class Kernel extends ConsoleKernel
 {
@@ -30,6 +31,7 @@ class Kernel extends ConsoleKernel
             ->job(new SyncAllLibrariesJob(true))
             ->everyMinute()
             ->withoutOverlapping();
+        
     }
 
     /**

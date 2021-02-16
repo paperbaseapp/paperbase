@@ -7,6 +7,7 @@ use App\Models\DocumentPage;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -18,25 +19,28 @@ use Throwable;
 
 class GenerateOCRJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Failsafe;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * Create a new job instance.
      *
-     * @return void
+     * @param Document $document
      */
     public function __construct(
         protected Document $document,
     )
     {
-
     }
 
     /**
      * @throws Exception
      */
-    public function failsafeHandle()
+    public function handle()
     {
+        // Wait up to 10 minutes to get the document lock
+        $lock = $this->document->getLock(600);
+        $lock->block(600);
+
         if (Str::of($this->document->getAbsolutePath())->lower()->endsWith('.pdf')) {
             $pages = $this->readPdfPages();
 
@@ -49,6 +53,8 @@ class GenerateOCRJob implements ShouldQueue
                     '--output-type',
                     'pdfa',
                     '--force-ocr',
+                    '--jobs',
+                    '1',
                     $this->document->getAbsolutePath(),
                     $this->document->getAbsolutePath(),
                 ]);
@@ -73,6 +79,8 @@ class GenerateOCRJob implements ShouldQueue
             $this->document->ocr_status = Document::OCR_UNAVAILABLE;
             $this->document->save();
         }
+
+        $lock->release();
     }
 
     /**
@@ -116,6 +124,7 @@ class GenerateOCRJob implements ShouldQueue
 
     public function failed(Throwable $exception)
     {
+        $this->document->getLock()->release();
         $this->document->ocr_status = Document::OCR_FAILED;
         $this->document->save();
     }

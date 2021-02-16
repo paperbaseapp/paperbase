@@ -51,6 +51,7 @@ class RouteServiceProvider extends ServiceProvider
             switch ($request->route()?->getName()) {
                 case 'document/thumbnail':
                 case 'search':
+                case 'job/getMultiple':
                     return null;
             }
 

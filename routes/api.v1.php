@@ -27,7 +27,7 @@ Route::group(['prefix' => '/auth'], function (Router $router) {
 Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
     $router->group(['prefix' => '/job'], function (Router $router) {
         $router->get('/{jobId}', [JobController::class, 'get']);
-        $router->get('/', [JobController::class, 'getMultiple']);
+        $router->get('/', [JobController::class, 'getMultiple'])->name('job/getMultiple');
     });
 
     $router->group(['prefix' => '/library'], function (Router $router) {

@@ -5,13 +5,13 @@ namespace App\Jobs;
 use App\Models\Document;
 use App\Models\Library;
 use Carbon\Carbon;
-use Exception;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Imtigger\LaravelJobStatus\Trackable;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -20,7 +20,7 @@ use Throwable;
 
 class SyncLibraryJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable, Failsafe;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
 
     public const DETECTION_MODE_MTIME = 'mtime';
     public const DETECTION_MODE_HASH = 'hash';
@@ -41,8 +41,12 @@ class SyncLibraryJob implements ShouldQueue
         $this->prepareStatus();
     }
 
-    private function failsafeHandle()
+    public function handle()
     {
+        // Wait max. 30 mins for the locks to get released
+        $lock = $this->library->getLock(1800);
+        $lock->block(1800);
+
         if (!$this->checkSyncNeededOnly) {
             exec('sudo /app/scripts/fix-permissions.sh');
         }
@@ -51,6 +55,7 @@ class SyncLibraryJob implements ShouldQueue
         $libraryIterator = new RecursiveIteratorIterator($libraryDirectoryIterator);
 
         $changedDocuments = [];
+        $jobs = [];
         $changesDetected = false; // For dry run
 
         $files = collect($libraryIterator);
@@ -80,7 +85,8 @@ class SyncLibraryJob implements ShouldQueue
                 if (
                     ($this->detectionMode === self::DETECTION_MODE_MTIME
                         ? $existingDocument->last_mtime->notEqualTo($mtime)
-                        : $existingDocument->last_hash !== $getHash())
+                        : $existingDocument->last_hash !== $getHash()) ||
+                    $existingDocument->needs_sync
                 ) {
                     if ($this->checkSyncNeededOnly) {
                         $changesDetected = true;
@@ -92,8 +98,8 @@ class SyncLibraryJob implements ShouldQueue
                         $existingDocument->needs_sync = false;
                         $existingDocument->save();
                         $changedDocuments[] = $existingDocument->only(['id', 'path', 'title']);
-                        dispatch(new GenerateThumbnailsJob($existingDocument));
-                        dispatch(new GenerateOCRJob($existingDocument));
+                        $jobs[] = new GenerateThumbnailsJob($existingDocument);
+                        $jobs[] = new GenerateOCRJob($existingDocument);
                     }
                 }
             } else if ($this->checkSyncNeededOnly) {
@@ -129,6 +135,8 @@ class SyncLibraryJob implements ShouldQueue
                     $document->last_mtime = $mtime;
                     $this->library->documents()->save($document);
                     $changedDocuments[] = $document->only(['id', 'path', 'title']);
+                    $jobs[] = new GenerateThumbnailsJob($document);
+                    $jobs[] = new GenerateOCRJob($document);
                 }
             }
 
@@ -151,35 +159,6 @@ class SyncLibraryJob implements ShouldQueue
             }
         }
 
-        // Check Documents with needs_sync = true
-        /** @var Document $document */
-        foreach ($this->library->documents()->where('needs_sync', true)->get() as $document) {
-            $mtime = Carbon::createFromTimestamp($document->getFileInfo()->getMTime());
-            $computedHash = null;
-            $getHash = function () use ($document, &$computedHash) {
-                if ($computedHash === null) {
-                    $computedHash = Document::hashFile($document->getAbsolutePath());
-                }
-                return $computedHash;
-            };
-
-            if ($this->checkSyncNeededOnly) {
-                $changesDetected = true;
-
-                // We can exit the loop here because we don't make
-                // any modifications
-                break;
-            } else {
-                $document->last_hash = $getHash();
-                $document->last_mtime = $mtime;
-                $document->needs_sync = false;
-                $document->save();
-                $changedDocuments[] = $document->only(['id', 'path', 'title']);
-                dispatch(new GenerateThumbnailsJob($document));
-                dispatch(new GenerateOCRJob($document));
-            }
-        }
-
         if ($this->checkSyncNeededOnly) {
             $this->library->needs_sync = $changesDetected;
             $this->library->save();
@@ -190,13 +169,20 @@ class SyncLibraryJob implements ShouldQueue
 
         $this->setProgressNow($this->progressMax);
 
+        foreach ($jobs as $job) {
+            dispatch($job);
+        }
+
         if (!$this->checkSyncNeededOnly) {
             $this->setOutput($changedDocuments);
         }
+
+        $lock->release();
     }
 
-    private function failed(Throwable $exception)
+    public function failed(Throwable $exception)
     {
+        $this->library->getLock()->release();
         $this->library->needs_sync = true;
         $this->library->save();
     }
