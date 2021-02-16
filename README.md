@@ -1,5 +1,4 @@
 # Paperprism
-![ci](https://github.com/paperprism/docs/workflows/ci/badge.svg)
 
 ## Development setup
 
@@ -13,3 +12,9 @@
 3. `docker-compose up`
 4. Create a new user with `docker-compose exec app php artisan user:create`
 5. You can access Paperprism at `http://paperprism.localhost`
+
+## official docs (early work in progress)
+
+We created our [official docs](https://paperprism.github.io/). Please note that they are in a very early state. In the
+following weeks we will supplement feature by feature. 
+
