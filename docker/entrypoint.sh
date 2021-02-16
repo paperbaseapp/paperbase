@@ -13,11 +13,7 @@ exec_as_www_data() {
 if [ "$1" = "worker" ]; then
   echo "Waiting for app:80..."
   wait-for app:80 -t 3600
-  echo "Starting $(nproc --all) workers..."
-  for i in $(seq $(nproc --all)); do
-    run_as_www_data php artisan queue:work --tries=5 --backoff=30 --timeout=600 &
-  done
-  wait
+  run_as_www_data php artisan queue:work --tries=5 --backoff=30 --timeout=600
 elif [ "$1" = "scheduler" ]; then
   echo "Waiting for app:80..."
   wait-for app:80 -t 3600 || exit 1
