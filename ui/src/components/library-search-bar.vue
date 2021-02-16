@@ -94,6 +94,7 @@
 <style lang="scss">
   .search-result {
     em {
+      font-style: normal;
       display: inline-block;
       background-color: #ffffaa;
       padding: 0.1em 0.2em;

@@ -15,6 +15,7 @@ trait Failsafe
             $this->failsafeHandle();
         } catch (Exception $exception) {
             $this->failed($exception);
+            throw $exception;
         }
     }
 
