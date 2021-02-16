@@ -6,8 +6,8 @@ if (!function_exists('join_path')) {
     function join_path(string $a, string $b, bool $safe = true): string
     {
         if ($safe) {
-            $a = preg_replace('/\.+/', '.', $a);
-            $b = preg_replace('/\.+/', '.', $b);
+            $a = preg_replace('/\.+\//', '.', $a);
+            $b = preg_replace('/\.+\//', '.', $b);
         }
         return join('/', [rtrim($a, '/'), rtrim($b, '/')]);
     }
