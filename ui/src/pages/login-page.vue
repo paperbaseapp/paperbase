@@ -6,7 +6,7 @@
           <login-form />
         </div>
         <div class="flex-grow-1 pt-3 teaser">
-          paperprism
+          paperbase
         </div>
       </v-container>
     </v-fade-transition>

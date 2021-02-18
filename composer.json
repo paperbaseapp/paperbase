@@ -1,7 +1,7 @@
 {
-  "name": "paperprism/paperprism",
+  "name": "paperbaseapp/paperbase",
   "type": "project",
-  "description": "Paperprism document organizer",
+  "description": "Paperbase document organizer",
   "keywords": [
     "framework",
     "laravel"

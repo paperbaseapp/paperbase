@@ -11,7 +11,7 @@ volumes:
 
 services:
   app:
-    image: paperprism/paperprism
+    image: paperbaseapp/paperbase
     env_file: .env
     volumes:
       - storage:/app/storage
@@ -23,17 +23,17 @@ services:
       - 80
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.taco.rule=Host(`mypaperprism.example.com`)"
+      - "traefik.http.routers.taco.rule=Host(`mypaperbase.example.com`)"
       - "traefik.http.routers.taco.tls.certresolver=default"
   worker:
-    image: paperprism/paperprism
+    image: paperbaseapp/paperbase
     env_file: .env
     volumes:
       - storage:/app/storage
     command: worker
     restart: always
   scheduler:
-    image: paperprism/paperprism
+    image: paperbaseapp/paperbase
     env_file: .env
     volumes:
       - storage:/app/storage

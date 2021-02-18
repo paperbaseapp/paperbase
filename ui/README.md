@@ -1,4 +1,4 @@
-# paperprism-ui
+# paperbase-ui
 
 ## Project setup
 ```

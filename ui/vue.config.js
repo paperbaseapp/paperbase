@@ -1,7 +1,7 @@
 module.exports = {
   devServer: {
     disableHostCheck: true,
-    public: 'paperprism.localhost',
+    public: 'paperbase.localhost',
   },
   transpileDependencies: [
     'vuetify'

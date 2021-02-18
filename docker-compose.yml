@@ -29,7 +29,7 @@ services:
     restart: on-failure
     labels:
       - traefik.enable=true
-      - traefik.http.routers.api.rule=Host(`paperprism.localhost`) && PathPrefix(`/api`)
+      - traefik.http.routers.api.rule=Host(`paperbase.localhost`) && PathPrefix(`/api`)
   worker:
     build:
       context: .
@@ -55,7 +55,7 @@ services:
     restart: on-failure
     labels:
       - traefik.enable=true
-      - traefik.http.routers.ui.rule=Host(`paperprism.localhost`)
+      - traefik.http.routers.ui.rule=Host(`paperbase.localhost`)
       - traefik.http.services.ui.loadbalancer.server.port=8080
   db:
     image: postgres:13-alpine
