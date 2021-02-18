@@ -29,9 +29,9 @@ class Kernel extends ConsoleKernel
         // $schedule->command('inspire')->hourly();
         $schedule
             ->job(new SyncAllLibrariesJob(true))
+            ->name('sync_all_libraries')
             ->everyMinute()
             ->withoutOverlapping();
-        
     }
 
     /**

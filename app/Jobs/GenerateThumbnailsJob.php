@@ -10,11 +10,12 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
+use Imtigger\LaravelJobStatus\Trackable;
 use Symfony\Component\Process\Process;
 
 class GenerateThumbnailsJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
 
     /**
      * Create a new job instance.
@@ -25,7 +26,7 @@ class GenerateThumbnailsJob implements ShouldQueue
         protected Document $document,
     )
     {
-
+        $this->prepareStatus();
     }
 
     /**

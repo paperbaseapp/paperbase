@@ -14,12 +14,13 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Imtigger\LaravelJobStatus\Trackable;
 use Symfony\Component\Process\Process;
 use Throwable;
 
 class GenerateOCRJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable, UsesLocks;
 
     /**
      * Create a new job instance.
@@ -30,6 +31,8 @@ class GenerateOCRJob implements ShouldQueue
         protected Document $document,
     )
     {
+        $this->prepareStatus();
+        $this->prepareLock($this->document, 600);
     }
 
     /**
@@ -38,7 +41,7 @@ class GenerateOCRJob implements ShouldQueue
     public function handle()
     {
         // Wait up to 10 minutes to get the document lock
-        $lock = $this->document->getLock(600);
+        $lock = $this->restoreLock($this->document);
         $lock->block(600);
 
         if (Str::of($this->document->getAbsolutePath())->lower()->endsWith('.pdf')) {
@@ -70,6 +73,8 @@ class GenerateOCRJob implements ShouldQueue
                 $this->document->last_mtime = Carbon::createFromTimestamp($this->document->getFileInfo()->getMTime());
                 $this->document->ocr_status = Document::OCR_DONE;
                 $pages = $this->readPdfPages();
+            } else {
+                $this->document->ocr_status = Document::OCR_NOT_REQUIRED;
             }
 
             $this->document->pages()->delete();
@@ -124,7 +129,7 @@ class GenerateOCRJob implements ShouldQueue
 
     public function failed(Throwable $exception)
     {
-        $this->document->getLock()->release();
+        $this->restoreLock($this->document)->release();
         $this->document->ocr_status = Document::OCR_FAILED;
         $this->document->save();
     }

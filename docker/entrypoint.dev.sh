@@ -27,6 +27,7 @@ else
   chmod -R g+rw /app/storage
 
   wait-for-it -t 60 db:5432
+  wait-for-it -t 60 meilisearch:7700
 
   run_as_www_data php artisan migrate --force
   exec apache2-foreground

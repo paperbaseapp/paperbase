@@ -10,6 +10,7 @@ use App\Models\Library;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Imtigger\LaravelJobStatus\JobStatus;
+use MeiliSearch\Client as MeilisearchClient;
 use MeiliSearch\Endpoints\Indexes;
 use SplFileInfo;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -76,8 +77,17 @@ class LibraryController extends Controller
         throw new NotFoundHttpException('File not found');
     }
 
-    public function search(Library $library)
+    /**
+     * @param Library $library
+     * @param MeilisearchClient $client
+     * @return array|\Illuminate\Database\Eloquent\Collection
+     */
+    public function search(Library $library, MeilisearchClient $client)
     {
+        if (!collect($client->getAllIndexes())->some(fn(Indexes $index) => $index->getUid() === (new DocumentPage())->searchableAs())) {
+            return [];
+        }
+
         $query = request('query', '');
         return DocumentPage::search($query, function (Indexes $meilisearch, $query, $options) use ($library) {
             $options['filters'] = 'library_id="' . $library->id . '"';

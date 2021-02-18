@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Jobs\GenerateOCRJob;
 use App\Jobs\GenerateThumbnailsJob;
+use App\Models\Traits\Lockable;
+use App\Models\Traits\LockableContract;
 use App\Models\Traits\UsesPrimaryUuid;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,10 +27,11 @@ use SplFileInfo;
  * @property bool needs_sync
  * @property string library_id
  */
-class Document extends Model
+class Document extends Model implements LockableContract
 {
     use HasFactory;
     use UsesPrimaryUuid;
+    use Lockable;
 
     public const OCR_PENDING = 'pending';
     public const OCR_DONE = 'done';
@@ -128,10 +131,5 @@ class Document extends Model
     public static function hashFile(string $path): string
     {
         return hash_file('sha256', $path);
-    }
-
-    public function getLock(int $seconds = 0)
-    {
-        return Cache::lock('document.' . $this->id, $seconds);
     }
 }

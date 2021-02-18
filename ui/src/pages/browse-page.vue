@@ -33,9 +33,10 @@
       </v-card>
     </v-dialog>
 
-    <library-search-bar :library-id="selectedLibraryId" />
-
-    <library-view v-if="!!realSelectedLibraryId" :library-id="realSelectedLibraryId" />
+    <template v-if="!!realSelectedLibraryId">
+      <library-search-bar :library-id="selectedLibraryId" />
+      <library-view :library-id="realSelectedLibraryId" />
+    </template>
   </v-container>
 </template>
 

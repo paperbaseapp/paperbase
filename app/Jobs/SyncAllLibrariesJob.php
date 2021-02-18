@@ -38,10 +38,13 @@ class SyncAllLibrariesJob implements ShouldQueue
 
         /** @var Library $library */
         foreach ($libraries as $library) {
+            $job = new SyncLibraryJob($library, $this->checkSyncNeededOnly);
+
             try {
-                dispatch_now(new SyncLibraryJob($library, $this->checkSyncNeededOnly));
+                $job->handle();
             } catch (\Exception $exception) {
                 report($exception);
+                $job->failed($exception);
             }
             $this->incrementProgress();
         }
