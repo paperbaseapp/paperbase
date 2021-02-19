@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Traits\Lockable;
-use App\Models\Traits\LockableContract;
 use App\Models\Traits\UsesPrimaryUuid;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Scout\Searchable;

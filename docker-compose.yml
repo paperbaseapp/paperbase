@@ -75,6 +75,10 @@ services:
     image: getmeili/meilisearch
     volumes:
       - meilisearch:/data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.search.rule=Host(`search.paperbase.localhost`)
+      - traefik.http.services.search.loadbalancer.server.port=7700
     environment:
       MEILI_MASTER_KEY: ${MEILISEARCH_KEY}
       MEILI_DB_PATH: '/data/database.ms'
