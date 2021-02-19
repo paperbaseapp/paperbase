@@ -34,6 +34,6 @@ else
   wait-for-it -t 60 meilisearch:7700
 
   run_as_www_data php artisan migrate --force
-  run_as_www_data php artisan telescope:publish
+  php artisan telescope:publish
   exec apache2-foreground
 fi
