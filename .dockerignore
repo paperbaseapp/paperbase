@@ -1,2 +1,4 @@
 vendor
 ui/node_modules
+storage/libraries
+storage/thumbnails
