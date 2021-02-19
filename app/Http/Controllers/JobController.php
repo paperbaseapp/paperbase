@@ -6,7 +6,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Library;
 use App\Models\User;
+use Illuminate\Support\Facades\Bus;
 use Imtigger\LaravelJobStatus\JobStatus;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class JobController extends Controller
 {
@@ -29,6 +31,25 @@ class JobController extends Controller
         }
 
         return response()->json($jobs);
+    }
+
+    public function getMultipleBatches()
+    {
+        $data = $this->validateWith([
+            'ids' => 'array|required',
+            'ids.*' => 'string|required',
+        ]);
+
+        $batches = [];
+        foreach ($data['ids'] as $id) {
+            if ($batch = Bus::findBatch($id)) {
+                $batches[] = $batch;
+            } else {
+                throw new NotFoundHttpException('Batch ' . $id . ' not found');
+            }
+        }
+
+        return response()->json($batches);
     }
 }
 

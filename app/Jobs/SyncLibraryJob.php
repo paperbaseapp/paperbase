@@ -7,12 +7,13 @@ use App\Models\Library;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Log;
 use Imtigger\LaravelJobStatus\Trackable;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -23,20 +24,18 @@ class SyncLibraryJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable, UsesLocks;
 
-    public const DETECTION_MODE_MTIME = 'mtime';
-    public const DETECTION_MODE_HASH = 'hash';
 
     /**
      * Create a new job instance.
      *
      * @param Library $library
      * @param bool $checkForChangesOnly Don't import or sync documents but only check if the library needs a sync
-     * @param string $detectionMode hash is slower
+     * @param bool $exitIfLibraryIsLocked
      */
     public function __construct(
         protected Library $library,
         protected bool $checkForChangesOnly = false,
-        protected string $detectionMode = self::DETECTION_MODE_MTIME
+        protected bool $exitIfLibraryIsLocked = false,
     )
     {
         $this->prepareStatus();
@@ -47,7 +46,14 @@ class SyncLibraryJob implements ShouldQueue
     {
         // Wait max. 30 mins for the locks to get released
         $lock = $this->restoreLock($this->library);
-        $lock->block(1800);
+
+        if ($this->exitIfLibraryIsLocked) {
+            if (!$lock->get()) {
+                return;
+            }
+        } else {
+            $lock->block(1800);
+        }
 
         exec('sudo /app/scripts/fix-permissions.sh');
 
@@ -93,13 +99,32 @@ class SyncLibraryJob implements ShouldQueue
 
         $this->setProgressNow($this->progressMax);
 
+        $ocrJobs = [];
+        $thumbnailJobs = [];
         foreach ($jobs as $job) {
-            dispatch($job);
+            if ($job instanceof GenerateOCRJob) {
+                $ocrJobs[] = $job;
+            } elseif ($job instanceof GenerateThumbnailsJob) {
+                $thumbnailJobs[] = $job;
+            }
         }
 
         if (!$this->checkForChangesOnly) {
             $this->setOutput([
-                'started_job_ids' => collect($jobs)->map(fn($job) => $job->getJobStatusId()),
+                'thumbnail_batch' => count($thumbnailJobs) > 0
+                    ? Bus::batch($thumbnailJobs)
+                        ->name('thumbnails')
+                        ->allowFailures()
+                        ->dispatch()
+                        ->toArray()
+                    : null,
+                'ocr_batch' => count($ocrJobs) > 0
+                    ? Bus::batch($ocrJobs)
+                        ->name('ocr')
+                        ->allowFailures()
+                        ->dispatch()
+                        ->toArray()
+                    : null,
             ]);
         }
 
@@ -115,6 +140,11 @@ class SyncLibraryJob implements ShouldQueue
      */
     public function checkFile(SplFileInfo $info, &$changesDetected, &$changedDocuments, &$jobs)
     {
+        // This prevents "File not found" exceptions when files are deleted while scanning
+        if (!file_exists($info->getRealPath())) {
+            return;
+        }
+
         $absolutePath = $info->getPathname();
         $path = $this->library->getRelativePath($info->getRealPath());
 
@@ -135,17 +165,22 @@ class SyncLibraryJob implements ShouldQueue
             $documentLock = null;
 
             // If we are only checking for changes
-            $documentLock = $existingDocument->makeLock(600);
-            $documentLock->block(600);
+            $documentLock = $existingDocument->makeLock(5);
 
             try {
+                $documentLock->get();
+
                 // We already have a record in our database, so let's update
                 // the hash if necessary…
                 if (
-                    ($this->detectionMode === self::DETECTION_MODE_MTIME
-                        ? $existingDocument->last_mtime->notEqualTo($mtime)
-                        : $existingDocument->last_hash !== $getHash()) ||
-                    $existingDocument->needs_sync
+                    (
+                        $existingDocument->last_mtime->notEqualTo($mtime) &&
+                        $existingDocument->last_hash !== $getHash()
+                    ) ||
+                    (
+                        $existingDocument->needs_sync &&
+                        !$this->checkForChangesOnly
+                    )
                 ) {
                     if ($this->checkForChangesOnly) {
                         $changesDetected = true;
@@ -165,11 +200,13 @@ class SyncLibraryJob implements ShouldQueue
                         $jobs[] = new GenerateOCRJob($existingDocument);
                     }
                 }
+            } catch (LockTimeoutException $exception) {
+                Log::warning('Could not check document ' . $existingDocument->id . ' as it is currently locked.');
             } catch (Exception $exception) {
                 $documentLock->release();
                 throw $exception;
             }
-        } else if ($this->checkForChangesOnly) {
+        } elseif ($this->checkForChangesOnly) {
             $changesDetected = true;
         } else {
             // We didn't find a document record for this path. There are now multiple possibilities:
@@ -213,5 +250,6 @@ class SyncLibraryJob implements ShouldQueue
         $this->restoreLock($this->library)->release();
         $this->library->needs_sync = true;
         $this->library->save();
+        $this->delete();
     }
 }

@@ -12,6 +12,7 @@ export const store = new Vuex.Store({
     redirectRoute: null,
     modelCache: {},
     jobs: {},
+    batches: {},
   },
   mutations: {
     setUser(state, user) {
@@ -24,12 +25,39 @@ export const store = new Vuex.Store({
       state.redirectRoute = redirectRoute
     },
     setJob(state, job) {
+      const oldJob = state.jobs[job.id] ?? null
+
+      if (job.status === 'finished' && (!oldJob || oldJob.status !== 'finished')) {
+        switch (job.type) {
+          case 'App\\Jobs\\SyncLibraryJob':
+            if (job.output?.thumbnail_batch) {
+              Vue.set(state.batches, job.output.thumbnail_batch.id, job.output.thumbnail_batch)
+            }
+
+            if (job.output?.ocr_batch) {
+              Vue.set(state.batches, job.output.ocr_batch.id, job.output.ocr_batch)
+            }
+        }
+      }
+
       Vue.set(state.jobs, job.id, job)
+    },
+    setBatch(state, batch) {
+      Vue.set(state.batches, batch.id, batch)
     }
   },
   getters: {
     isLoggedIn(state) {
       return state.user !== null
+    },
+    globalBatchProgress(state) {
+      const batches = Object.values(state.batches)
+      if (batches.length === 0) {
+        return null
+      }
+
+      return batches.reduce((acc, batch) => acc + batch.processedJobs + batch.failedJobs, 0) /
+        batches.reduce((acc, batch) => acc + batch.totalJobs, 0) * 100
     },
   },
   actions: {
@@ -52,6 +80,25 @@ export const store = new Vuex.Store({
         }
       }
     },
+    async updateBatches({commit, state}) {
+      const batchesToFetch = []
+      for (const batch of Object.values(state.batches)) {
+        if (batch.pendingJobs - batch.failedJobs !== 0) {
+          batchesToFetch.push(batch.id)
+        }
+      }
+
+      if (batchesToFetch.length > 0) {
+        const batches = await axios.$get('/job/batch', {
+          params: {
+            ids: batchesToFetch,
+          },
+        })
+        for (const batch of batches) {
+          commit('setBatch', batch)
+        }
+      }
+    },
     async startSyncLibraryJob({commit}, libraryId) {
       const job = await axios.$post(`/library/${libraryId}/sync`)
       commit('setJob', job)
@@ -65,7 +112,10 @@ export const store = new Vuex.Store({
 const scheduleJobsUpdate = () => {
   setTimeout(async () => {
     try {
-      await store.dispatch('updateJobs')
+      await Promise.all([
+        store.dispatch('updateJobs'),
+        store.dispatch('updateBatches'),
+      ])
     } catch (e) {
       console.error(e)
     }

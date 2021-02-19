@@ -6,6 +6,7 @@ use App\Jobs\SyncAllLibrariesJob;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -28,10 +29,11 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule
-            ->job(new SyncAllLibrariesJob(true))
+            ->call(function () {
+                dispatch(new SyncAllLibrariesJob(true));
+            })
             ->name('sync_all_libraries')
-            ->everyMinute()
-            ->withoutOverlapping();
+            ->everyMinute();
     }
 
     /**

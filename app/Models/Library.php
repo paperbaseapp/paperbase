@@ -17,6 +17,7 @@ use InvalidArgumentException;
 use Ramsey\Collection\Collection;
 use SplFileInfo;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Class Library
@@ -86,6 +87,10 @@ class Library extends Model implements LockableContract
     public function browseDirectory(string $relativePath): \Generator
     {
         $path = $this->getAbsolutePath($relativePath);
+
+        if (!file_exists($path)) {
+            throw new NotFoundHttpException();
+        }
 
         if (!is_dir($path)) {
             throw new InvalidArgumentException('directoryPath must be a directory');

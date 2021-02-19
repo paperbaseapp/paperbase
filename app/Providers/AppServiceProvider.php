@@ -22,6 +22,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(User::class, fn(): ?User => User::current());
         $this->app->singleton(Filesystem::class, fn(): Filesystem => new Filesystem());
+
+        if ($this->app->environment('local')) {
+            $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
+            $this->app->register(TelescopeServiceProvider::class);
+        }
     }
 
     /**

@@ -2,15 +2,12 @@
 
 namespace App\Models;
 
-use App\Jobs\GenerateOCRJob;
-use App\Jobs\GenerateThumbnailsJob;
 use App\Models\Traits\Lockable;
 use App\Models\Traits\LockableContract;
 use App\Models\Traits\UsesPrimaryUuid;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use SplFileInfo;
 

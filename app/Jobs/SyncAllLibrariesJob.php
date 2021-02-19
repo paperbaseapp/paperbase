@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Library;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -12,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Imtigger\LaravelJobStatus\Trackable;
 
-class SyncAllLibrariesJob implements ShouldQueue
+class SyncAllLibrariesJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
 
@@ -38,7 +39,7 @@ class SyncAllLibrariesJob implements ShouldQueue
 
         /** @var Library $library */
         foreach ($libraries as $library) {
-            $job = new SyncLibraryJob($library, $this->checkSyncNeededOnly);
+            $job = new SyncLibraryJob($library, $this->checkSyncNeededOnly, true);
 
             try {
                 $job->handle();
@@ -48,5 +49,10 @@ class SyncAllLibrariesJob implements ShouldQueue
             }
             $this->incrementProgress();
         }
+    }
+
+    public function uniqueId()
+    {
+        return 'sync_all';
     }
 }

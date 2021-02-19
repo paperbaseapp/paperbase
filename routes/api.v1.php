@@ -26,6 +26,7 @@ Route::group(['prefix' => '/auth'], function (Router $router) {
 
 Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
     $router->group(['prefix' => '/job'], function (Router $router) {
+        $router->get('/batch', [JobController::class, 'getMultipleBatches'])->name('job/getMultipleBatches');
         $router->get('/{jobId}', [JobController::class, 'get']);
         $router->get('/', [JobController::class, 'getMultiple'])->name('job/getMultiple');
     });

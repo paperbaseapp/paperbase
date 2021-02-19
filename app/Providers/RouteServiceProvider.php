@@ -52,6 +52,7 @@ class RouteServiceProvider extends ServiceProvider
                 case 'document/thumbnail':
                 case 'search':
                 case 'job/getMultiple':
+                case 'job/getMultipleBatches':
                     return null;
             }
 

@@ -4,62 +4,83 @@ namespace App\Jobs;
 
 use App\Models\Document;
 use Exception;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Imtigger\LaravelJobStatus\Trackable;
 use Symfony\Component\Process\Process;
+use Throwable;
 
-class GenerateThumbnailsJob implements ShouldQueue
+class GenerateThumbnailsJob extends SafeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
+    use Batchable;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+    use UsesLocks;
+
+    public $tries = 1000;
+    public $timeout = 20;
+    public $maxExceptions = 1;
 
     /**
      * Create a new job instance.
      *
-     * @return void
+     * @param Document $document
      */
     public function __construct(
         protected Document $document,
     )
     {
-        $this->prepareStatus();
+        $this->prepareLock($this->document, 20);
     }
 
-    /**
-     * Execute the job.
-     *
-     * @return void
-     * @throws Exception
-     */
-    public function handle()
+    public function safeHandle()
     {
         if (Str::of($this->document->getAbsolutePath())->lower()->endsWith('.pdf')) {
-            $process = new Process([
-                'pdftocairo',
-                $this->document->getAbsolutePath(),
-                '-',
-                '-jpeg',
-                '-singlefile',
-                '-antialias',
-                'best',
-                '-scale-to',
-                '400',
-                '-jpegopt',
-                'quality=60,progressive=y,optimize=y',
-            ]);
-            $process->setTimeout(10);
-            $process->start();
-            $process->wait();
+            $lock = $this->restoreLock($this->document);
 
-            if (!$process->isSuccessful()) {
-                throw new Exception('Could not generate Thumbnail for ' . $this->document->title . "\n" . $process->getErrorOutput());
+            if ($lock->get()) {
+                $process = new Process([
+                    'pdftocairo',
+                    $this->document->getAbsolutePath(),
+                    '-',
+                    '-jpeg',
+                    '-singlefile',
+                    '-antialias',
+                    'best',
+                    '-scale-to',
+                    '400',
+                    '-jpegopt',
+                    'quality=60,progressive=y,optimize=y',
+                ]);
+                $process->setTimeout(10);
+                $process->start();
+                $process->wait();
+
+                if (!$process->isSuccessful()) {
+                    throw new Exception('Could not generate Thumbnail for ' . $this->document->title . "\n" . $process->getErrorOutput());
+                }
+
+                file_put_contents($this->document->getThumbnailPath(), $process->getOutput());
+
+                $lock->release();
+            } else {
+                $this->release(10);
             }
-
-            file_put_contents($this->document->getThumbnailPath(), $process->getOutput());
         }
+    }
+
+    public function onFail(\Throwable $exception): bool
+    {
+        $this->restoreLock($this->document)->release();
+        return false;
     }
 }

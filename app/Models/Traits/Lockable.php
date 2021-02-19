@@ -23,4 +23,9 @@ trait Lockable
     {
         return Cache::restoreLock($this->getLockName(), $owner);
     }
+
+    public function forceReleaseLock()
+    {
+        $this->makeLock()->forceRelease();
+    }
 }

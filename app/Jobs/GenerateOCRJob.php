@@ -4,23 +4,30 @@ namespace App\Jobs;
 
 use App\Models\Document;
 use App\Models\DocumentPage;
-use Carbon\Carbon;
 use Exception;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use Imtigger\LaravelJobStatus\Trackable;
 use Symfony\Component\Process\Process;
-use Throwable;
 
-class GenerateOCRJob implements ShouldQueue
+class GenerateOCRJob extends SafeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable, UsesLocks;
+    use Batchable;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+    use UsesLocks;
+
+    public $maxExceptions = 1;
+    public $tries = 1000;
+    public $timeout;
 
     /**
      * Create a new job instance.
@@ -31,61 +38,63 @@ class GenerateOCRJob implements ShouldQueue
         protected Document $document,
     )
     {
-        $this->prepareStatus();
-        $this->prepareLock($this->document, 600);
+        $this->timeout = config('paperbase.ocr_timeout');
+        $this->prepareLock($this->document, $this->timeout);
     }
 
-    /**
-     * @throws Exception
-     */
-    public function handle()
+    public function safeHandle()
     {
         // Wait up to 10 minutes to get the document lock
         $lock = $this->restoreLock($this->document);
-        $lock->block(600);
 
         if (Str::of($this->document->getAbsolutePath())->lower()->endsWith('.pdf')) {
-            $pages = $this->readPdfPages();
+            if ($lock->get()) {
+                $pages = $this->readPdfPages();
 
-            if (empty($pages)) {
-                $process = new Process([
-                    'ocrmypdf',
-                    '-l',
-                    'deu+eng', // TODO: Implement custom language from document
-                    '--deskew',
-                    '--output-type',
-                    'pdfa',
-                    '--force-ocr',
-                    '--jobs',
-                    '1',
-                    $this->document->getAbsolutePath(),
-                    $this->document->getAbsolutePath(),
-                ]);
-                $process->setTimeout(600);
-                $process->start();
-                $process->wait();
+                if (empty($pages)) {
+                    $process = new Process([
+                        'ocrmypdf',
+                        '-l',
+                        'deu+eng', // TODO: Implement custom language from document
+                        '--deskew',
+                        '--output-type',
+                        'pdfa',
+                        '--jobs',
+                        '2',
+                        '--tesseract-timeout',
+                        strval($this->timeout - 10), // Leave 10s for non-tesseract processing
+                        $this->document->getAbsolutePath(),
+                        $this->document->getAbsolutePath(),
+                    ]);
 
-                if (!$process->isSuccessful()) {
-                    throw new Exception('Could not generate OCR for ' . $this->document->title . "\n" . $process->getErrorOutput());
+                    $process->setTimeout(config('paperbase.ocr_timeout'));
+                    $process->start();
+                    $process->wait();
+
+                    if (!$process->isSuccessful()) {
+                        throw new Exception('Could not generate OCR for ' . $this->document->title . "\n" . $process->getErrorOutput());
+                    }
+
+                    $this->document->last_hash = Document::hashFile($this->document->getAbsolutePath());
+                    $this->document->last_mtime = Carbon::createFromTimestamp($this->document->getFileInfo()->getMTime());
+                    $this->document->ocr_status = Document::OCR_DONE;
+                    $pages = $this->readPdfPages();
+                } else {
+                    $this->document->ocr_status = Document::OCR_NOT_REQUIRED;
                 }
 
-                $this->document->last_hash = Document::hashFile($this->document->getAbsolutePath());
-                $this->document->last_mtime = Carbon::createFromTimestamp($this->document->getFileInfo()->getMTime());
-                $this->document->ocr_status = Document::OCR_DONE;
-                $pages = $this->readPdfPages();
+                $this->document->pages()->delete();
+                $this->document->pages()->saveMany($pages);
+                $this->document->save();
+                $lock->release();
             } else {
-                $this->document->ocr_status = Document::OCR_NOT_REQUIRED;
+                $this->release(10);
             }
 
-            $this->document->pages()->delete();
-            $this->document->pages()->saveMany($pages);
-            $this->document->save();
         } else {
             $this->document->ocr_status = Document::OCR_UNAVAILABLE;
             $this->document->save();
         }
-
-        $lock->release();
     }
 
     /**
@@ -127,10 +136,12 @@ class GenerateOCRJob implements ShouldQueue
         return $pages;
     }
 
-    public function failed(Throwable $exception)
+    public function onFail(\Throwable $exception): bool
     {
         $this->restoreLock($this->document)->release();
         $this->document->ocr_status = Document::OCR_FAILED;
         $this->document->save();
+
+        return false;
     }
 }

@@ -148,6 +148,7 @@
           this.parentPath = data.parent_path
         } catch (e) {
           console.error(e)
+          this.parentPath = ''
         }
 
         this.loading = false
