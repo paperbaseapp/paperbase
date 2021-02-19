@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 
@@ -88,6 +89,7 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                 $this->document->save();
                 $lock->release();
             } else {
+                Log::info('COULD NOT GET LOCK');
                 $this->release(10);
             }
 

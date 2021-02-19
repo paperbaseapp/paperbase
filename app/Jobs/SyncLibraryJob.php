@@ -167,44 +167,46 @@ class SyncLibraryJob implements ShouldQueue
             // If we are only checking for changes
             $documentLock = $existingDocument->makeLock(5);
 
-            try {
-                $documentLock->get();
+            if ($documentLock->get()) {
+                try {
+                    // We already have a record in our database, so let's update
+                    // the hash if necessary…
+                    if (
+                        (
+                            $existingDocument->last_mtime->notEqualTo($mtime) &&
+                            $existingDocument->last_hash !== $getHash()
+                        ) ||
+                        (
+                            $existingDocument->needs_sync &&
+                            !$this->checkForChangesOnly
+                        )
+                    ) {
+                        if ($this->checkForChangesOnly) {
+                            $changesDetected = true;
+                            $existingDocument->needs_sync = true;
+                            $existingDocument->save();
 
-                // We already have a record in our database, so let's update
-                // the hash if necessary…
-                if (
-                    (
-                        $existingDocument->last_mtime->notEqualTo($mtime) &&
-                        $existingDocument->last_hash !== $getHash()
-                    ) ||
-                    (
-                        $existingDocument->needs_sync &&
-                        !$this->checkForChangesOnly
-                    )
-                ) {
-                    if ($this->checkForChangesOnly) {
-                        $changesDetected = true;
-                        $existingDocument->needs_sync = true;
-                        $existingDocument->save();
-
-                        if ($documentLock) {
-                            $documentLock->release();
+                            if ($documentLock) {
+                                $documentLock->release();
+                            }
+                        } else {
+                            $existingDocument->last_hash = $getHash();
+                            $existingDocument->last_mtime = $mtime;
+                            $existingDocument->needs_sync = false;
+                            $existingDocument->save();
+                            $changedDocuments[] = $existingDocument->only(['id', 'path', 'title']);
+                            $jobs[] = new GenerateThumbnailsJob($existingDocument);
+                            $jobs[] = new GenerateOCRJob($existingDocument);
                         }
-                    } else {
-                        $existingDocument->last_hash = $getHash();
-                        $existingDocument->last_mtime = $mtime;
-                        $existingDocument->needs_sync = false;
-                        $existingDocument->save();
-                        $changedDocuments[] = $existingDocument->only(['id', 'path', 'title']);
-                        $jobs[] = new GenerateThumbnailsJob($existingDocument);
-                        $jobs[] = new GenerateOCRJob($existingDocument);
                     }
+                    $documentLock->release();
+
+                } catch (Exception $exception) {
+                    $documentLock->release();
+                    throw $exception;
                 }
-            } catch (LockTimeoutException $exception) {
+            } else {
                 Log::warning('Could not check document ' . $existingDocument->id . ' as it is currently locked.');
-            } catch (Exception $exception) {
-                $documentLock->release();
-                throw $exception;
             }
         } elseif ($this->checkForChangesOnly) {
             $changesDetected = true;

@@ -14,6 +14,7 @@
         <template v-slot:activator="{on, attrs}">
           <v-btn v-bind="attrs" v-on="on" class="mr-3" icon>
             <v-progress-circular
+              :color="$store.getters.globalBatchProgress === 100 ? 'success' : null"
               :indeterminate="$store.getters.globalBatchProgress === 0"
               :value="$store.getters.globalBatchProgress"
               rotate="-90"
