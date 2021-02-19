@@ -55,10 +55,18 @@ class Document extends Model implements LockableContract
         'last_hash',
         'thumbnail_url',
         'directory_path',
+        'ocr_status',
+        'created_at',
     ];
 
     protected static function booted()
     {
+        static::deleting(function (Document $document) {
+            $document->pages()->each(function (DocumentPage $page) {
+                $page->delete();
+            });
+        });
+
         static::deleted(function (Document $document) {
             if ($document->hasThumbnail()) {
                 unlink($document->getThumbnailPath());

@@ -1,4 +1,4 @@
-import {formatDistanceToNow, format as formatDate, parseISO, differenceInDays, startOfToday, startOfDay} from 'date-fns'
+import {formatDistanceToNow, format as formatDate, parseISO} from 'date-fns'
 import {de} from 'date-fns/locale'
 
 export const formatsDates = {
@@ -9,23 +9,10 @@ export const formatsDates = {
         locale: de,
       })
     },
-    formatDate(dateOrIsoString, format = 'dd.MM.yyyy') {
+    formatDate(dateOrIsoString, format = 'dd.MM.yyyy HH:mm') {
       return formatDate(dateOrIsoString instanceof Date ? dateOrIsoString : parseISO(dateOrIsoString), format, {
         locale: de,
       })
-    },
-    formatDateRelativeDays(dateString) {
-      const today = startOfToday()
-      const days = differenceInDays(startOfDay(new Date(dateString)), today)
-
-      switch (days) {
-        case 2: return 'übermorgen'
-        case 1: return 'morgen'
-        case 0: return 'heute'
-        case -1: return 'gestern'
-        case -2: return 'vorgestern'
-        default: return `${days > 0 ? 'in' : 'vor'} ${Math.abs(days)} Tagen`
-      }
     },
   },
 }

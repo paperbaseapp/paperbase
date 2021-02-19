@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="caption mb-2">Location: {{ library.name }} / {{ currentPath.replaceAll('/', ' / ') }}</div>
+    <div class="caption mb-2">Location: {{ library.name }} / {{ currentDirectoryPath.replaceAll('/', ' / ') }}</div>
     <v-card class="overflow-hidden">
       <div class="d-flex px-3 pt-3">
         <v-btn :disabled="parentPath === null" @click="navigateToPath(parentPath)" depressed>
@@ -57,10 +57,18 @@
           </template>
 
           <template v-slot:default="{items}">
-            <transition :name="lastNavigation === 'up' ? 'scroll-y-reverse-transition' : 'scroll-y-transition'" mode="out-in">
+            <transition
+              :name="lastNavigation === 'up' ? 'scroll-y-reverse-transition' : 'scroll-y-transition'"
+              mode="out-in"
+            >
               <div class="pa-3" v-if="!loading">
                 <div class="explorer-grid">
-                  <library-node-view v-for="item in items" :node="item" :key="item.path" @click="navigateToItem(item)" />
+                  <library-node-view
+                    v-for="item in items"
+                    :node="item"
+                    :key="item.path"
+                    @click="navigateToItem(item)"
+                  />
                 </div>
               </div>
             </transition>
@@ -78,9 +86,19 @@
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-toolbar>
-        <document-viewer class="flex-grow-1" :library-id="library.id" :path="documentViewerNode.path" />
+        <document-viewer
+          class="flex-grow-1"
+          :library-id="library.id"
+          :node="documentViewerNode"
+          :loading="loading"
+          @delete="deleteNode(documentViewerNode)"
+        />
       </div>
     </v-dialog>
+
+    <v-snackbar top right v-model="nodeDeletedSnackbarOpen" :timeout="5000">
+      {{ deletedNodeName }} deleted.
+    </v-snackbar>
   </div>
 </template>
 
@@ -99,7 +117,7 @@
     },
     data: vm => ({
       currentPath: vm.$route.query.path ?? '',
-      currentPathIsFile: false,
+      currentNode: null,
       items: [],
       parentPath: null,
       loading: false,
@@ -113,6 +131,8 @@
       },
       documentViewerDialogOpen: false,
       documentViewerNode: null,
+      nodeDeletedSnackbarOpen: false,
+      deletedNodeName: '',
     }),
     watch: {
       '$route.query.path'(path) {
@@ -141,9 +161,17 @@
       },
       documentViewerDialogOpen(value) {
         if (!value) {
+          this.currentPath = this.documentViewerNode?.parent_path
           this.navigateToPath(this.documentViewerNode?.parent_path)
         }
       },
+    },
+    computed: {
+      currentDirectoryPath() {
+        return this.currentNode?.type === 'directory'
+          ? this.currentNode?.path
+          : this.currentNode?.parent_path ?? this.currentPath
+      }
     },
     async mounted() {
       this.fetch()
@@ -156,7 +184,7 @@
           this.browse()
         } else {
           this.currentPath = node.parent_path
-          this.currentPathIsFile = true
+          this.currentNode = node
           this.documentViewerNode = node
           this.documentViewerDialogOpen = true
           this.browse()
@@ -190,10 +218,26 @@
         if (item.type === 'directory') {
           this.navigateToPath(item.path)
         } else if (item.document !== null) {
+          this.currentPath = item.path
           this.documentViewerNode = item
           this.documentViewerDialogOpen = true
           this.navigateToPath(item.path)
         }
+      },
+      async deleteNode(node) {
+        this.loading = true
+
+        try {
+          await axios.$delete(`/library/${this.library.id}/node/${node.path}`)
+          this.documentViewerDialogOpen = false
+          this.deletedNodeName = node.basename
+          this.nodeDeletedSnackbarOpen = true
+          await this.fetch()
+        } catch (e) {
+          console.error(e)
+        }
+
+        this.loading = false
       },
     },
   }

@@ -69,4 +69,12 @@ class LibraryNode implements \JsonSerializable
             'needs_sync' => $this->getType() === self::TYPE_FILE && ($this->getDocument() === null || $this->getDocument()->needs_sync),
         ];
     }
+
+    public function delete()
+    {
+        unlink($this->fileInfo->getRealPath());
+        if ($document = $this->getDocument()) {
+            $document->delete();
+        }
+    }
 }

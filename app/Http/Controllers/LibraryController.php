@@ -105,5 +105,12 @@ class LibraryController extends Controller
             ->get()
             ->makeVisible('search_metadata');
     }
+
+    public function deleteNode(Library $library, string $path)
+    {
+        $node = $library->getLibraryNodeAt($path);
+        $node->delete();
+        return response()->noContent();
+    }
 }
 
