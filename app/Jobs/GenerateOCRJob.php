@@ -58,6 +58,7 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                         '-l',
                         'deu+eng', // TODO: Implement custom language from document
                         '--deskew',
+                        '--redo-ocr',
                         '--output-type',
                         'pdfa',
                         '--jobs',
