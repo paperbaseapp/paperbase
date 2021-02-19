@@ -99,6 +99,7 @@
     },
     data: vm => ({
       currentPath: vm.$route.query.path ?? '',
+      currentPathIsFile: false,
       items: [],
       parentPath: null,
       loading: false,
@@ -115,8 +116,12 @@
     }),
     watch: {
       '$route.query.path'(path) {
-        this.currentPath = path ?? ''
-        this.$nextTick(() => this.fetch())
+        const newPath = path ?? ''
+
+        if (this.currentPath !== newPath) {
+          this.currentPath = newPath
+          this.$nextTick(() => this.fetch())
+        }
       },
       currentPath(value, oldValue) {
         this.lastNavigation = oldValue.startsWith(value)
@@ -134,12 +139,30 @@
           }, 750)
         }
       },
+      documentViewerDialogOpen(value) {
+        if (!value) {
+          this.navigateToPath(this.documentViewerNode?.parent_path)
+        }
+      },
     },
-    mounted() {
+    async mounted() {
       this.fetch()
     },
     methods: {
       async fetch() {
+        const node = await axios.$get(`/library/${this.library.id}/node/${this.currentPath}`)
+
+        if (node.type === 'directory') {
+          this.browse()
+        } else {
+          this.currentPath = node.parent_path
+          this.currentPathIsFile = true
+          this.documentViewerNode = node
+          this.documentViewerDialogOpen = true
+          this.browse()
+        }
+      },
+      async browse() {
         this.loading = true
 
         try {
@@ -169,6 +192,7 @@
         } else if (item.document !== null) {
           this.documentViewerNode = item
           this.documentViewerDialogOpen = true
+          this.navigateToPath(item.path)
         }
       },
     },

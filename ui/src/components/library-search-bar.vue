@@ -52,7 +52,7 @@
             libraryId: item.document.library_id,
           },
           query: {
-            path: item.document.directory_path,
+            path: item.document.path,
           },
         })
 

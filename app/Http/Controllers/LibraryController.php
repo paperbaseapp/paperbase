@@ -65,6 +65,11 @@ class LibraryController extends Controller
         ]);
     }
 
+    public function getNode(Library $library, string $path = '')
+    {
+        return $library->getLibraryNodeAt($path);
+    }
+
     public function downloadFile(Library $library, string $path)
     {
         if ($library->hasFile($path)) {

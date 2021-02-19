@@ -84,6 +84,17 @@ class Library extends Model implements LockableContract
         );
     }
 
+    public function getLibraryNodeAt(string $relativePath): LibraryNode
+    {
+        $path = $this->getAbsolutePath($relativePath);
+
+        if (!file_exists($path)) {
+            throw new NotFoundHttpException();
+        }
+
+        return new LibraryNode($this, $this->getRelativePath($path));
+    }
+
     public function browseDirectory(string $relativePath): \Generator
     {
         $path = $this->getAbsolutePath($relativePath);
@@ -97,7 +108,6 @@ class Library extends Model implements LockableContract
         }
 
         $iterator = new DirectoryIterator($path);
-
 
         /** @var SplFileInfo $item */
         foreach ($iterator as $item) {

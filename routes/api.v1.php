@@ -36,6 +36,7 @@ Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
         $router->get('/', [LibraryController::class, 'getAll']);
         $router->get('/{library}', [LibraryController::class, 'get']);
         $router->post('/{library}/sync', [LibraryController::class, 'sync']);
+        $router->get('/{library}/node{path}', [LibraryController::class, 'getNode'])->where('path', '(\/?.*)');
         $router->get('/{library}/browse{path}', [LibraryController::class, 'browse'])->where('path', '(\/?.*)');
         $router->get('/{library}/download/{path}', [LibraryController::class, 'downloadFile'])->where('path', '(.+)');
         $router->get('/{library}/search', [LibraryController::class, 'search'])->name('search');

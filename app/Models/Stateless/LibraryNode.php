@@ -61,6 +61,7 @@ class LibraryNode implements \JsonSerializable
         return [
             'path' => $this->path,
             'type' => $this->getType(),
+            'parent_path' => $this->library->getParentRelativePath($this->path),
             'extension' => $this->fileInfo->getExtension(),
             'basename' => $this->fileInfo->getBasename(),
             'size' => $this->fileInfo->getSize(),

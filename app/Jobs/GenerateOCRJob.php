@@ -101,7 +101,7 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                     $this->document->ocr_status = Document::OCR_NOT_REQUIRED;
                 }
 
-                $this->document->pages()->delete();
+                $this->document->pages()->get('id')->each(fn(DocumentPage $page) => $page->delete());
                 $this->document->pages()->saveMany($pages);
                 $this->document->save();
                 $lock->release();
