@@ -68,8 +68,24 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                         $this->document->getAbsolutePath(),
                     ]);
 
+
                     $process->setTimeout(config('paperbase.ocr_timeout'));
                     $process->start();
+
+                    try {
+                        $reniceProcess = new Process([
+                            'renice',
+                            '-n',
+                            '15',
+                            '-p',
+                            $process->getPid(),
+                        ]);
+                        $reniceProcess->start();
+                    } catch (Exception $exception) {
+                        Log::error('Could not set OCR priority/nice value.');
+                        report($exception);
+                    }
+
                     $process->wait();
 
                     if (!$process->isSuccessful()) {
