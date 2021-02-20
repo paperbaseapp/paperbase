@@ -1,6 +1,7 @@
 <template>
   <div>
-    <div class="caption mb-2">Location: {{ library.name }} / {{ currentDirectoryPath.replaceAll('/', ' / ') }}</div>
+    <v-breadcrumbs class="px-0" :items="locationBreadcrumbs" />
+
     <v-card class="overflow-hidden">
       <div class="d-flex px-3 pt-3">
         <v-btn :disabled="parentPath === null" @click="navigateToPath(parentPath)" depressed>
@@ -118,6 +119,7 @@
     data: vm => ({
       currentPath: vm.$route.query.path ?? '',
       currentNode: null,
+      parentPath: '',
       previousNode: null,
       items: [],
       loading: false,
@@ -176,7 +178,36 @@
         return this.currentNode?.type === 'directory'
           ? this.currentNode?.path
           : this.currentNode?.parent_path ?? this.currentPath
-      }
+      },
+      locationBreadcrumbs() {
+        const segments = this.currentDirectoryPath.split('/')
+
+        const items = [{
+          text: 'Library',
+          exact: true,
+          to: {
+            query: {
+              path: '',
+            },
+          },
+        }]
+        const processedSegments = []
+
+        for (const segment of segments) {
+          processedSegments.push(segment)
+          items.push({
+            text: segment,
+            exact: true,
+            to: {
+              query: {
+                path: processedSegments.join('/'),
+              },
+            },
+          })
+        }
+
+        return items
+      },
     },
     async mounted() {
       this.fetch()
