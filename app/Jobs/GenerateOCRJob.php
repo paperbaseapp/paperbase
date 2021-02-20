@@ -53,9 +53,6 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                 $pages = $this->readPdfPages();
 
                 if (empty($pages)) {
-                    $node = $this->document->getLibraryNode();
-                    $node->moveToTrash();
-
                     $process = new Process([
                         'ocrmypdf',
                         '-l',
