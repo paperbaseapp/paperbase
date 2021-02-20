@@ -2,6 +2,9 @@ import {default as BaseAxios} from 'axios'
 
 /**
  * @property {function} $get
+ * @property {function} $post
+ * @property {function} $delete
+ * @property {function} $put
  */
 const axios = BaseAxios.create({
   baseURL: '/api/v1',
