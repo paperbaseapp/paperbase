@@ -136,6 +136,7 @@
     flex-shrink: 0;
     width: min-content;
     max-width: 33%;
+    min-width: 250px;
   }
 
   .delete-button {
