@@ -7,7 +7,8 @@
         <v-btn :disabled="parentPath === null" @click="navigateToPath(parentPath)" depressed>
           <v-icon>mdi-arrow-up</v-icon>
         </v-btn>
-        <v-spacer />
+        <v-spacer/>
+
         <v-btn-toggle dense class="ma-0" mandatory v-model="displayMode">
           <v-btn value="grid">
             <v-icon>mdi-view-module-outline</v-icon>
@@ -28,6 +29,9 @@
             {text: 'Size', value: 'size'},
           ]"
           :options="paginationOptions"
+          :footer-props="{
+            'items-per-page-options': [30,50,100,-1]
+          }"
           :items="items"
           @click:row="navigateToItem"
           :item-class="() => 'hand-cursor'"
@@ -47,6 +51,9 @@
           :loading="throttledLoading"
           :options="paginationOptions"
           :items="items"
+          :footer-props="{
+            'items-per-page-options': [30,50,100,-1]
+          }"
           class="full-width"
         >
           <template v-slot:no-data>
@@ -130,7 +137,7 @@
       lastNavigation: 'down', // or up
       paginationOptions: {
         page: 1,
-        itemsPerPage: -1,
+        itemsPerPage: 50,
       },
       documentViewerDialogOpen: false,
       documentViewerNode: null,
@@ -247,7 +254,6 @@
           this.parentPath = data.parent_path
         } catch (e) {
           console.error(e)
-          this.parentPath = ''
         }
 
         this.loading = false
