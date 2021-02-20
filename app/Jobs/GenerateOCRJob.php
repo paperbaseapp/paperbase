@@ -53,6 +53,9 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                 $pages = $this->readPdfPages();
 
                 if (empty($pages)) {
+                    $node = $this->document->getLibraryNode();
+                    $node->moveToTrash();
+
                     $process = new Process([
                         'ocrmypdf',
                         '-l',
@@ -68,7 +71,6 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                         $this->document->getAbsolutePath(),
                         $this->document->getAbsolutePath(),
                     ]);
-
 
                     $process->setTimeout(config('paperbase.ocr_timeout'));
                     $process->start();
@@ -90,7 +92,7 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                     $process->wait();
 
                     if (!$process->isSuccessful()) {
-                        throw new Exception('Could not generate OCR for ' . $this->document->title . "\n" . $process->getErrorOutput());
+                        throw new Exception('Could not generate OCR for ' . $this->document->path . "\n" . $process->getErrorOutput());
                     }
 
                     $this->document->last_hash = Document::hashFile($this->document->getAbsolutePath());
