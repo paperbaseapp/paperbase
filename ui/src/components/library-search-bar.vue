@@ -6,7 +6,7 @@
     return-object
     no-filter
     auto-select-first
-    item-text="document.title"
+    item-text="document.basename"
     placeholder="Search in library"
     solo
   >
@@ -56,6 +56,7 @@
           },
           query: {
             path: item.document.path,
+            page: item.page,
           },
         })
 
@@ -88,7 +89,7 @@
         }
       },
       getDocumentTitleHtml(item) {
-        return `${item.search_metadata.formatted.document_title} <small class="grey--text">Seite ${item.page}</small>`
+        return `${item.search_metadata.formatted.document_filename} <small class="grey--text">Seite ${item.page}</small>`
       },
     }
   }

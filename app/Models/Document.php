@@ -16,13 +16,14 @@ use SplFileInfo;
  * @package App\Models
  * @property string id
  * @property string path The path inside the library
- * @property string title
+ * @property string|null title
  * @property string last_hash
  * @property Carbon last_mtime
  * @property string ocr_status
  * @property Library library
  * @property bool needs_sync
  * @property string library_id
+ * @property string basename
  */
 class Document extends Model implements LockableContract
 {
@@ -39,6 +40,7 @@ class Document extends Model implements LockableContract
     protected $appends = [
         'thumbnail_url',
         'directory_path',
+        'basename',
     ];
 
     protected $dates = [
@@ -50,6 +52,7 @@ class Document extends Model implements LockableContract
     protected $visible = [
         'id',
         'path',
+        'basename',
         'title',
         'library_id',
         'last_hash',
@@ -131,6 +134,11 @@ class Document extends Model implements LockableContract
         }
 
         return route('document/thumbnail', ['document' => $this->id]);
+    }
+
+    public function getBasenameAttribute()
+    {
+        return basename($this->path);
     }
 
     public static function hashFile(string $path): string

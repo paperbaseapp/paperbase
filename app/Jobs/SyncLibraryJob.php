@@ -194,7 +194,7 @@ class SyncLibraryJob implements ShouldQueue
                             $existingDocument->last_mtime = $mtime;
                             $existingDocument->needs_sync = false;
                             $existingDocument->save();
-                            $changedDocuments[] = $existingDocument->only(['id', 'path', 'title']);
+                            $changedDocuments[] = $existingDocument->only(['id', 'path', 'basename']);
                             $jobs[] = new GenerateThumbnailsJob($existingDocument);
                             $jobs[] = new GenerateOCRJob($existingDocument);
                         }
@@ -235,7 +235,6 @@ class SyncLibraryJob implements ShouldQueue
                 // We didn't find a non-existent document record with the same hash,
                 // so this is likely a new file
                 $document = new Document();
-                $document->title = basename($absolutePath);
                 $document->path = $path;
                 $document->last_hash = $getHash();
                 $document->last_mtime = $mtime;

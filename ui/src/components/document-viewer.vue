@@ -8,7 +8,7 @@
         </v-list-item>
         <v-list-item>
           <v-list-item-content>
-            <v-list-item-title>{{ nodeDisplayName }}</v-list-item-title>
+            <v-list-item-title>{{ node.basename }}</v-list-item-title>
             <v-list-item-subtitle>{{ formatBytes(node.size) }}</v-list-item-subtitle>
           </v-list-item-content>
         </v-list-item>
@@ -64,6 +64,7 @@
       libraryId: String,
       node: Object,
       loading: Boolean,
+      page: Number,
     },
     data: () => ({
       movingToTrash: false,
@@ -76,6 +77,9 @@
       libraryId() {
         this.update()
       },
+      page() {
+        this.update()
+      },
       movingToTrash(value) {
         if (value) {
           if (this.movingToTrashTimeoutId) {
@@ -86,9 +90,6 @@
       },
     },
     computed: {
-      nodeDisplayName() {
-        return this.node.document?.title ?? this.node.basename
-      },
       ocrStatusText() {
         switch (this.node.document?.ocr_status) {
           case 'pending': return 'Document text pending'
@@ -106,7 +107,13 @@
     methods: {
       update() {
         this.$refs.embed.innerHTML = ''
-        PDFObject.embed(`${axios.defaults.baseURL}/library/${this.libraryId}/download/${this.node.path}`, this.$refs.embed)
+        let url = `${axios.defaults.baseURL}/library/${this.libraryId}/download/${this.node.path}`
+
+        if (this.page) {
+          url += `#page=${this.page}`
+        }
+
+        PDFObject.embed(url, this.$refs.embed)
       },
       onDeleteClick() {
         if (!this.movingToTrash) {

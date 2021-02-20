@@ -27,7 +27,7 @@ class CreateDocumentsTable extends Migration
             $table->string('path');
             $table->string('last_hash');
             $table->dateTime('last_mtime');
-            $table->string('title');
+            $table->string('title')->nullable();
             $table->string('ocr_status')->default(Document::OCR_PENDING);
             $table->boolean('needs_sync')->default(false);
 

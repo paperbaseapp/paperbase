@@ -81,7 +81,7 @@
     <v-dialog v-model="documentViewerDialogOpen" fullscreen transition="dialog-bottom-transition">
       <div v-if="!!documentViewerNode" class="fill-height d-flex flex-column">
         <v-toolbar dense class="flex-grow-0">
-          <v-toolbar-title>{{ documentViewerNode.basename }}</v-toolbar-title>
+          <v-toolbar-title>{{ documentViewerNodeDisplayName }}</v-toolbar-title>
           <v-spacer />
           <v-btn icon @click="documentViewerDialogOpen = false">
             <v-icon>mdi-close</v-icon>
@@ -92,6 +92,7 @@
           :library-id="library.id"
           :node="documentViewerNode"
           :loading="loading"
+          :page="documentViewerPage"
           @delete="deleteNode(documentViewerNode)"
         />
       </div>
@@ -134,6 +135,7 @@
       documentViewerDialogOpen: false,
       documentViewerNode: null,
       documentViewerParentNode: null,
+      documentViewerPage: null,
       nodeDeletedSnackbarOpen: false,
       deletedNodeName: '',
     }),
@@ -148,6 +150,12 @@
           this.currentPath = newPath
           this.$nextTick(() => this.fetch())
         }
+      },
+      '$route.query.page': {
+        immediate: true,
+        handler(value) {
+          this.documentViewerPage = value ?? null
+        },
       },
       currentPath(value, oldValue) {
         this.lastNavigation = oldValue.startsWith(value)
@@ -207,6 +215,9 @@
         }
 
         return items
+      },
+      documentViewerNodeDisplayName() {
+        return this.documentViewerNode.document?.title ?? this.documentViewerNode.basename
       },
     },
     async mounted() {
