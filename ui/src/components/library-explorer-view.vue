@@ -118,8 +118,8 @@
     data: vm => ({
       currentPath: vm.$route.query.path ?? '',
       currentNode: null,
+      previousNode: null,
       items: [],
-      parentPath: null,
       loading: false,
       throttledLoading: false,
       throttledLoadingTimeoutId: null,
@@ -131,6 +131,7 @@
       },
       documentViewerDialogOpen: false,
       documentViewerNode: null,
+      documentViewerParentNode: null,
       nodeDeletedSnackbarOpen: false,
       deletedNodeName: '',
     }),
@@ -165,6 +166,7 @@
       documentViewerDialogOpen(value) {
         if (!value) {
           this.currentPath = this.documentViewerNode?.parent_path
+          this.currentNode = this.documentViewerParentNode
           this.navigateToPath(this.documentViewerNode?.parent_path)
         }
       },
@@ -183,11 +185,12 @@
       async fetch() {
         const node = await axios.$get(`/library/${this.library.id}/node/${this.currentPath}`)
 
+        this.currentNode = node
+
         if (node.type === 'directory') {
           await this.browse()
         } else {
           this.currentPath = node.parent_path
-          this.currentNode = node
           this.documentViewerNode = node
           this.documentViewerDialogOpen = true
           await this.browse()
@@ -221,9 +224,10 @@
         if (item.type === 'directory') {
           this.navigateToPath(item.path)
         } else if (item.document !== null) {
-          this.currentPath = item.path
-          this.currentNode = item
+          this.documentViewerParentNode = this.currentNode
           this.documentViewerNode = item
+          this.currentNode = item
+          this.currentPath = item.path
           this.documentViewerDialogOpen = true
           this.navigateToPath(item.path)
         }
