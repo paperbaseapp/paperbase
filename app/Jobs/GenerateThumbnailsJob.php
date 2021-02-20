@@ -66,7 +66,7 @@ class GenerateThumbnailsJob extends SafeJob implements ShouldQueue
                 $process->wait();
 
                 if (!$process->isSuccessful()) {
-                    throw new Exception('Could not generate Thumbnail for ' . $this->document->title . "\n" . $process->getErrorOutput());
+                    throw new Exception('Could not generate Thumbnail for ' . $this->document->path . "\n" . $process->getErrorOutput());
                 }
 
                 file_put_contents($this->document->getThumbnailPath(), $process->getOutput());

@@ -77,7 +77,7 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                         $reniceProcess = new Process([
                             'renice',
                             '-n',
-                            '15',
+                            '19',
                             '-p',
                             $process->getPid(),
                         ]);
@@ -132,7 +132,7 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
         $process->wait();
 
         if (!$process->isSuccessful()) {
-            throw new Exception('Could not generate OCR for ' . $this->document->title . "\n" . $process->getErrorOutput());
+            throw new Exception('Could not generate OCR for ' . $this->document->path . "\n" . $process->getErrorOutput());
         }
 
         $pages = [];
