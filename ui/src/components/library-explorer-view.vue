@@ -7,16 +7,7 @@
           <v-icon>mdi-arrow-up</v-icon>
         </v-btn>
         <v-spacer/>
-        <v-text-field
-          item-text="document.fileName"
-          placeholder="Search for file name"
-          dense
-          hide-details
-          outlined
-          class="mx-3"
-        >
 
-        </v-text-field>
         <v-btn-toggle dense class="ma-0" mandatory v-model="displayMode">
           <v-btn value="grid">
             <v-icon>mdi-view-module-outline</v-icon>
