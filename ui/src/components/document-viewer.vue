@@ -71,13 +71,17 @@
     watch: {
       node() {
         this.update()
+        this.movingToTrash = false
       },
       libraryId() {
         this.update()
       },
       movingToTrash(value) {
         if (value) {
-          setTimeout(() => this.movingToTrash = false, 3000)
+          if (this.movingToTrashTimeoutId) {
+            clearTimeout(this.movingToTrashTimeoutId)
+          }
+          this.movingToTrashTimeoutId = setTimeout(() => this.movingToTrash = false, 3000)
         }
       },
     },

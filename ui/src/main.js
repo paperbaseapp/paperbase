@@ -2,7 +2,7 @@ import Vue from 'vue'
 import App from './app.vue'
 import './registerServiceWorker'
 import {router} from './router'
-import vuetify from './plugins/vuetify';
+import vuetify from './plugins/vuetify'
 import 'roboto-fontface/css/roboto/roboto-fontface.css'
 import '@mdi/font/css/materialdesignicons.css'
 import {store} from './store'
@@ -10,17 +10,35 @@ import {isTouchDevice} from '@/lib/isTouchDevice'
 import PortalVue from 'portal-vue'
 import './style/global.scss'
 
+import 'overlayscrollbars/css/OverlayScrollbars.css'
+import 'overlayscrollbars/js/OverlayScrollbars.js'
+
 Vue.config.productionTip = false
 
 Vue.prototype.$app = {
-    isTouch: isTouchDevice(),
+  isTouch: isTouchDevice(),
 }
 
 Vue.use(PortalVue)
 
 new Vue({
-    router,
-    vuetify,
-    store,
-    render: h => h(App)
+  router,
+  vuetify,
+  store,
+  mounted() {
+    const scrollbar = window.OverlayScrollbars(document.querySelectorAll('body'), {
+      nativeScrollbarsOverlaid: {
+        initialize: false,
+      }
+    })
+    const htmlObserver = new MutationObserver(() => {
+      scrollbar.options('overflowBehavior.y',
+        document.documentElement.classList.contains('overflow-y-hidden')
+          ? 'hidden'
+          : 'scroll',
+      )
+    })
+    htmlObserver.observe(document.documentElement, {attributes: true, attributeFilter: ['style', 'class']})
+  },
+  render: h => h(App),
 }).$mount('#app')

@@ -181,20 +181,20 @@
         const node = await axios.$get(`/library/${this.library.id}/node/${this.currentPath}`)
 
         if (node.type === 'directory') {
-          this.browse()
+          await this.browse()
         } else {
           this.currentPath = node.parent_path
           this.currentNode = node
           this.documentViewerNode = node
           this.documentViewerDialogOpen = true
-          this.browse()
+          await this.browse()
         }
       },
       async browse() {
         this.loading = true
 
         try {
-          const data = await axios.$get(`/library/${this.library.id}/browse/${this.currentPath}`)
+          const data = await axios.$get(`/library/${this.library.id}/browse/${this.currentDirectoryPath}`)
           this.items = data.items
           this.parentPath = data.parent_path
         } catch (e) {
@@ -219,6 +219,7 @@
           this.navigateToPath(item.path)
         } else if (item.document !== null) {
           this.currentPath = item.path
+          this.currentNode = item
           this.documentViewerNode = item
           this.documentViewerDialogOpen = true
           this.navigateToPath(item.path)
@@ -232,7 +233,7 @@
           this.documentViewerDialogOpen = false
           this.deletedNodeName = node.basename
           this.nodeDeletedSnackbarOpen = true
-          await this.fetch()
+          await this.browse()
         } catch (e) {
           console.error(e)
         }
