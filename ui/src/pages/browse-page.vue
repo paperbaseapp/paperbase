@@ -40,7 +40,7 @@
     </v-dialog>
 
     <template v-if="!!realSelectedLibraryId">
-      <library-search-bar :library-id="selectedLibraryId" />
+      <library-search-bar :library-id="realSelectedLibraryId" />
       <library-view :library-id="realSelectedLibraryId" />
     </template>
   </v-container>
@@ -98,8 +98,10 @@
           this.newLibraryErrorMessages = []
         } catch (e) {
           console.error(e)
-          if (e.response.status === 422) {
+          if (e.response?.status === 422) {
             this.newLibraryErrorMessages = ['There is already a library with that name']
+          } else {
+            this.newLibraryErrorMessages = ['An error occurred']
           }
         }
       },

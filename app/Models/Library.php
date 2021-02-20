@@ -6,13 +6,11 @@ use App\Models\Stateless\LibraryNode;
 use App\Models\Traits\Lockable;
 use App\Models\Traits\LockableContract;
 use App\Models\Traits\UsesPrimaryUuid;
+use App\Script;
 use DirectoryIterator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Ramsey\Collection\Collection;
 use SplFileInfo;
@@ -43,8 +41,15 @@ class Library extends Model implements LockableContract
     protected static function booted()
     {
         static::created(function (Library $library) {
-            Log::info($library->getAbsolutePath());
             mkdir($library->getAbsolutePath());
+            chmod($library->getAbsolutePath(), 0770);
+
+            if (config('paperbase.library_directory_owner_uid') !== null) {
+                Script::run('set-library-owner.sh', [
+                    $library->getLibraryDirectoryName(),
+                    config('paperbase.library_directory_owner_uid'),
+                ]);
+            }
         });
     }
 
@@ -63,10 +68,15 @@ class Library extends Model implements LockableContract
         return $this->hasMany(Document::class);
     }
 
+    public function getLibraryDirectoryName()
+    {
+        return $this->id . '-' . Str::slug($this->name);
+    }
+
     public function getAbsolutePath(?string $toFile = null)
     {
         return $toFile === null
-            ? canonicalize_path(join_path(storage_path('libraries'), $this->id . '-' . Str::slug($this->name)))
+            ? canonicalize_path(join_path(storage_path('libraries'), $this->getLibraryDirectoryName()))
             : canonicalize_path(join_path($this->getAbsolutePath(), $toFile));
     }
 
