@@ -73,10 +73,16 @@ class LibraryController extends Controller
     public function downloadFile(Library $library, string $path)
     {
         if ($library->hasFile($path)) {
-            $fileInfo = new SplFileInfo($library->getAbsolutePath($path));
-            return response()->download($fileInfo, $fileInfo->getBasename(), [
+            $node = $library->getLibraryNodeAt($path);
+            $cacheOptions = [];
+
+            if ($document = $node->getDocument()) {
+                $cacheOptions['etag'] = $document->last_hash;
+            }
+
+            return response()->download($node->getFileInfo(), $node->getFileInfo()->getBasename(), [
                 'Content-Type' => MimeTypes::getDefault()->guessMimeType($library->getAbsolutePath($path)),
-            ], 'inline');
+            ], 'inline')->setCache($cacheOptions);
         }
 
         throw new NotFoundHttpException('File not found');

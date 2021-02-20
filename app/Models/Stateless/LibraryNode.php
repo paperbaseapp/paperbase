@@ -32,6 +32,11 @@ class LibraryNode implements \JsonSerializable
         $this->fileInfo = new \SplFileInfo($this->getAbsolutePath());
     }
 
+    public function getFileInfo(): \SplFileInfo
+    {
+        return $this->fileInfo;
+    }
+
     private function getAbsolutePath()
     {
         return $this->library->getAbsolutePath($this->path);
