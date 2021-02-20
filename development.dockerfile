@@ -17,7 +17,8 @@ RUN apt-get update -y \
     && echo "www-data ALL=NOPASSWD:SETENV: /app/scripts/fix-permissions.sh" >> /etc/sudoers.d/paperbase \
     && echo "www-data ALL=NOPASSWD:SETENV: /app/scripts/set-library-owner.sh" >> /etc/sudoers.d/paperbase
 
-RUN apt-get install -y poppler-utils ocrmypdf tesseract-ocr-deu tesseract-ocr-spa tesseract-ocr-fra
+RUN apt-get install -y python3 python3-pip poppler-utils tesseract-ocr-deu tesseract-ocr-spa tesseract-ocr-fra libqpdf-dev \
+    && pip3 install ocrmypdf
 # TODO: add more languages with the tesseract-ocr-LANGUAGE
 # https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html
 
