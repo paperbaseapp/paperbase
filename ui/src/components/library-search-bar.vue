@@ -38,6 +38,9 @@
       selected: null,
     }),
     watch: {
+      libraryId() {
+        this.search()
+      },
       query() {
         this.search()
       },

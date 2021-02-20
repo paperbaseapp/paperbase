@@ -135,6 +135,9 @@
       deletedNodeName: '',
     }),
     watch: {
+      library() {
+        this.fetch()
+      },
       '$route.query.path'(path) {
         const newPath = path ?? ''
 
