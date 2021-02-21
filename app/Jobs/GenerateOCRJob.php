@@ -15,6 +15,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Imtigger\LaravelJobStatus\Trackable;
 use Symfony\Component\Process\Process;
 
 class GenerateOCRJob extends SafeJob implements ShouldQueue
@@ -25,6 +26,7 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
     use UsesLocks;
+    use Trackable;
 
     public $maxExceptions = 1;
     public $tries = 1000;
@@ -34,11 +36,14 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
      * Create a new job instance.
      *
      * @param Document $document
+     * @param bool $forceOcr
      */
     public function __construct(
         protected Document $document,
+        protected bool $forceOcr = false,
     )
     {
+        $this->prepareStatus();
         $this->timeout = config('paperbase.ocr_timeout');
         $this->prepareLock($this->document, $this->timeout);
     }
@@ -52,13 +57,13 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
             if ($lock->get()) {
                 $pages = $this->readPdfPages();
 
-                if (empty($pages)) {
+                if (empty($pages) || $this->forceOcr) {
                     $process = new Process([
                         'ocrmypdf',
                         '-l',
                         'deu+eng', // TODO: Implement custom language from document
                         // '--deskew', // --deskew is currently not compatible with --redo-ocr
-                        '--redo-ocr',
+                        $this->forceOcr ? '--force-ocr' : '--redo-ocr',
                         '--output-type',
                         'pdfa',
                         '--jobs',

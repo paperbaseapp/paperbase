@@ -10,12 +10,16 @@ use App\Script;
 use DirectoryIterator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Ramsey\Collection\Collection;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use SplFileInfo;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use function PHPUnit\Framework\fileExists;
 
 /**
  * Class Library
@@ -25,6 +29,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * @property bool needs_sync
  * @property User owner
  * @property Document[]|Collection documents
+ * @property string trash_path
+ * @property string inbox_path
  */
 class Library extends Model implements LockableContract
 {
@@ -41,8 +47,14 @@ class Library extends Model implements LockableContract
     protected static function booted()
     {
         static::created(function (Library $library) {
+            $library->refresh();
             mkdir($library->getAbsolutePath());
             chmod($library->getAbsolutePath(), 0770);
+
+            mkdir($library->getAbsolutePath($library->trash_path));
+            mkdir($library->getAbsolutePath($library->inbox_path));
+            chmod($library->getAbsolutePath($library->trash_path), 0770);
+            chmod($library->getAbsolutePath($library->inbox_path), 0770);
 
             if (config('paperbase.library_directory_owner_uid') !== null) {
                 Script::run('set-library-owner.sh', [
@@ -88,9 +100,10 @@ class Library extends Model implements LockableContract
             throw new InvalidArgumentException('File ' . $absoluteFilePath . ' is not inside library ' . $this->id);
         }
 
-        return ltrim(
+        return preg_replace(
+            '/(^\.\/|^\.$)/',
+            '',
             rtrim(app(Filesystem::class)->makePathRelative($absoluteFilePath, $this->getAbsolutePath()), '/'),
-            '.',
         );
     }
 
@@ -105,7 +118,12 @@ class Library extends Model implements LockableContract
         return new LibraryNode($this, $this->getRelativePath($path));
     }
 
-    public function browseDirectory(string $relativePath): \Generator
+    /**
+     * @param string $relativePath
+     * @param bool $recursive
+     * @return \Generator|LibraryNode[]
+     */
+    public function browseDirectory(string $relativePath, bool $recursive = false): \Generator
     {
         $path = $this->getAbsolutePath($relativePath);
 
@@ -117,7 +135,12 @@ class Library extends Model implements LockableContract
             throw new InvalidArgumentException('directoryPath must be a directory');
         }
 
-        $iterator = new DirectoryIterator($path);
+        if ($recursive) {
+            $directoryIterator = new RecursiveDirectoryIterator($this->getAbsolutePath(), RecursiveDirectoryIterator::SKIP_DOTS);
+            $iterator = new RecursiveIteratorIterator($directoryIterator);
+        } else {
+            $iterator = new DirectoryIterator($path);
+        }
 
         /** @var SplFileInfo $item */
         foreach ($iterator as $item) {
@@ -148,5 +171,29 @@ class Library extends Model implements LockableContract
     public function hasDirectory(string $relativePath)
     {
         return is_dir($this->getAbsolutePath($relativePath));
+    }
+
+    public function getAvailableTrashPath(string $filename)
+    {
+        $counter = 1;
+
+        do {
+            $count = $counter++;
+            $filenameSplit = explode('.', $filename);
+            $targetFilenameSplit = [];
+
+            for ($i = 0; $i < count($filenameSplit); $i++) {
+                $targetFilenameSplit[] = $filenameSplit[$i];
+
+                if ($i === max(count($filenameSplit) - 2, 0) && $count > 1) {
+                    $targetFilenameSplit[] = " $count";
+                }
+            }
+
+            $targetFilename = join('.', $targetFilenameSplit);
+            $targetTrashPath = join_path($this->trash_path, $targetFilename);
+        } while (file_exists($this->getAbsolutePath($targetTrashPath)));
+
+        return $targetTrashPath;
     }
 }

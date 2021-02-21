@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Stateless\LibraryNode;
 use App\Models\Traits\Lockable;
 use App\Models\Traits\LockableContract;
 use App\Models\Traits\UsesPrimaryUuid;
@@ -24,6 +25,7 @@ use SplFileInfo;
  * @property bool needs_sync
  * @property string library_id
  * @property string basename
+ * @property Carbon trashed_at
  */
 class Document extends Model implements LockableContract
 {
@@ -47,6 +49,7 @@ class Document extends Model implements LockableContract
         'created_at',
         'updated_at',
         'last_mtime',
+        'trashed_at',
     ];
 
     protected $visible = [
@@ -60,6 +63,7 @@ class Document extends Model implements LockableContract
         'directory_path',
         'ocr_status',
         'created_at',
+        'trashed_at',
     ];
 
     protected static function booted()
@@ -90,6 +94,11 @@ class Document extends Model implements LockableContract
     public function pages()
     {
         return $this->hasMany(DocumentPage::class);
+    }
+
+    public function getLibraryNode(): LibraryNode
+    {
+        return $this->library->getLibraryNodeAt($this->path);
     }
 
     public function getDirectoryPathAttribute()

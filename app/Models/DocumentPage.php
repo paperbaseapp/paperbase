@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Traits\UsesPrimaryUuid;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
 
 /**

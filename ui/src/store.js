@@ -104,6 +104,11 @@ export const store = new Vuex.Store({
       commit('setJob', job)
       return job
     },
+    async startForceOcrJob({commit}, documentId) {
+      const job = await axios.$post(`/document/${documentId}/force-ocr`)
+      commit('setJob', job)
+      return job
+    },
   }
 })
 

@@ -6,11 +6,17 @@ namespace App\Models\Stateless;
 
 use App\Models\Document;
 use App\Models\Library;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class LibraryNode implements \JsonSerializable
 {
     public const TYPE_FILE = 'file';
     public const TYPE_DIRECTORY = 'directory';
+
+    public const FLAG_TRASH = 'trash';
+    public const FLAG_INBOX = 'inbox';
 
     protected \SplFileInfo $fileInfo;
 
@@ -61,6 +67,21 @@ class LibraryNode implements \JsonSerializable
             : $this->documentCache;
     }
 
+    public function getFlags()
+    {
+        $flags = [];
+
+        $absolutePath = $this->getAbsolutePath();
+        if ($absolutePath === $this->library->getAbsolutePath($this->library->trash_path)) {
+            $flags[] = self::FLAG_TRASH;
+        }
+        if ($absolutePath === $this->library->getAbsolutePath($this->library->inbox_path)) {
+            $flags[] = self::FLAG_INBOX;
+        }
+
+        return $flags;
+    }
+
     public function jsonSerialize()
     {
         return [
@@ -71,8 +92,38 @@ class LibraryNode implements \JsonSerializable
             'basename' => $this->fileInfo->getBasename(),
             'size' => $this->fileInfo->getSize(),
             'document' => $this->getDocument(),
+            'flags' => $this->getFlags(),
             'needs_sync' => $this->getType() === self::TYPE_FILE && ($this->getDocument() === null || $this->getDocument()->needs_sync),
         ];
+    }
+
+    public function moveToTrash()
+    {
+        $trashPath = $this->library->getAvailableTrashPath($this->getFileInfo()->getBasename());
+
+        if ($this->getType() === self::TYPE_DIRECTORY) {
+            $oldDocuments = $this
+                ->library
+                ->documents()
+                ->where('path', 'like', '%' . str_replace('%', '\\%', $this->path))
+                ->get();
+
+            /** @var Document $document */
+            foreach ($oldDocuments as $document) {
+                $document->path = Str::of($document->path)->replaceFirst($this->path, $trashPath);
+                $document->trashed_at = Carbon::now();
+                $document->save();
+            }
+        } else {
+            $document = $this->getDocument();
+            if ($document) {
+                $document->path = $trashPath;
+                $document->trashed_at = Carbon::now();
+                $document->save();
+            }
+        }
+
+        rename($this->getAbsolutePath(), $this->library->getAbsolutePath($trashPath));
     }
 
     public function delete()

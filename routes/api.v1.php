@@ -46,5 +46,6 @@ Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
     $router->group(['prefix' => '/document'], function (Router $router) {
         $router->get('/{document}', [DocumentController::class, 'get']);
         $router->get('/{document}/thumbnail', [DocumentController::class, 'getThumbnail'])->name('document/thumbnail');
+        $router->post('/{document}/force-ocr', [DocumentController::class, 'forceOcr']);
     });
 });

@@ -24,6 +24,8 @@ class CreateLibrariesTable extends Migration
                 ->cascadeOnDelete()
                 ->cascadeOnUpdate();
             $table->boolean('needs_sync')->default(false);
+            $table->string('trash_path')->default('Trash');
+            $table->string('inbox_path')->default('Inbox');
 
             $table->timestamps();
         });

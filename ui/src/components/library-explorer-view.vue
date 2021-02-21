@@ -38,7 +38,7 @@
           class="full-width"
         >
           <template v-slot:item.type="{item}">
-            <v-icon v-text="getItemIcon(item)"></v-icon>
+            <v-icon v-text="item.icon"></v-icon>
           </template>
           <template v-slot:item.size="{item}">
             <template v-if="item.type === 'file'">
@@ -101,6 +101,7 @@
           :loading="loading"
           :page="documentViewerPage"
           @delete="deleteNode(documentViewerNode)"
+          @request-update="fetch"
         />
       </div>
     </v-dialog>
@@ -116,6 +117,7 @@
   import {formatsBytes} from '@/lib/mixins/formatsBytes'
   import LibraryNodeView from '@/components/library-node-view'
   import DocumentViewer from '@/components/document-viewer'
+  import {LibraryNodeContainer} from '@/lib/data-container/LibraryNodeContainer'
 
   export default {
     name: 'library-explorer-view',
@@ -232,14 +234,14 @@
     },
     methods: {
       async fetch() {
-        const node = await axios.$get(`/library/${this.library.id}/node/${this.currentPath}`)
+        const node = LibraryNodeContainer.wrap(await axios.$get(`/library/${this.library.id}/node/${this.currentPath}`))
 
         this.currentNode = node
 
         if (node.type === 'directory') {
           await this.browse()
         } else {
-          this.currentPath = node.parent_path
+          this.currentPath = node.path
           this.documentViewerNode = node
           this.documentViewerDialogOpen = true
           await this.browse()
@@ -250,20 +252,13 @@
 
         try {
           const data = await axios.$get(`/library/${this.library.id}/browse/${this.currentDirectoryPath}`)
-          this.items = data.items
+          this.items = LibraryNodeContainer.wrap(data.items)
           this.parentPath = data.parent_path
         } catch (e) {
           console.error(e)
         }
 
         this.loading = false
-      },
-      getItemIcon(item) {
-        if (item.type === 'directory') {
-          return 'mdi-folder-outline'
-        } else {
-          return 'mdi-file-outline'
-        }
       },
       navigateToPath(path) {
         this.$router.push({query: {path}})

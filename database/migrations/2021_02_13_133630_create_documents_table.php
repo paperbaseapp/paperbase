@@ -30,6 +30,7 @@ class CreateDocumentsTable extends Migration
             $table->string('title')->nullable();
             $table->string('ocr_status')->default(Document::OCR_PENDING);
             $table->boolean('needs_sync')->default(false);
+            $table->dateTime('trashed_at')->nullable();
 
             $table->unique(['library_id', 'path']);
 

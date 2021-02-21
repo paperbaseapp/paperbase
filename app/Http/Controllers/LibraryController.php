@@ -9,7 +9,9 @@ use App\Models\DocumentPage;
 use App\Models\Library;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Imtigger\LaravelJobStatus\JobStatus;
+use Laravel\Telescope\Telescope;
 use MeiliSearch\Client as MeilisearchClient;
 use MeiliSearch\Endpoints\Indexes;
 use SplFileInfo;
@@ -27,7 +29,8 @@ class LibraryController extends Controller
         $library = new Library();
         $library->name = $data['name'];
         $library->owner()->associate(User::current());
-        $library->save();
+
+        DB::transaction(fn() => $library->save());
 
         return response()->json($library);
     }
@@ -114,8 +117,18 @@ class LibraryController extends Controller
 
     public function deleteNode(Library $library, string $path)
     {
+        $this->validateWith([
+            'delete_permanently' => 'boolean|sometimes',
+        ]);
+
         $node = $library->getLibraryNodeAt($path);
-        $node->delete();
+
+        if (request('delete_permanently')) {
+            $node->delete();
+        } else {
+            $node->moveToTrash();
+        }
+
         return response()->noContent();
     }
 }

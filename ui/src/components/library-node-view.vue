@@ -20,7 +20,7 @@
       gradient="to top, rgba(0, 15, 25, 0.8) 0%, rgba(0, 15, 25, 0) 100%"
     />
     <div v-else class="thumbnail pb-5 d-flex align-center justify-center">
-      <v-icon size="64" v-text="getItemIcon(node)" />
+      <v-icon size="64" v-text="node.icon" />
     </div>
     <v-spacer />
     <div class="pa-3 card-text text-caption font-weight-medium" :class="{'white--text': hasThumbnail}">
@@ -52,15 +52,6 @@
         }
       }
     },
-    methods: {
-      getItemIcon(item) {
-        if (item.type === 'directory') {
-          return 'mdi-folder-outline'
-        } else {
-          return 'mdi-file-outline'
-        }
-      },
-    }
   }
 </script>
 
