@@ -100,7 +100,7 @@
           :node="documentViewerNode"
           :loading="loading"
           :page="documentViewerPage"
-          @delete="deleteNode(documentViewerNode)"
+          @delete="permanently => deleteNode(documentViewerNode, permanently)"
           @request-update="fetch"
         />
       </div>
@@ -275,11 +275,13 @@
           this.navigateToPath(item.path)
         }
       },
-      async deleteNode(node) {
+      async deleteNode(node, permanently) {
         this.loading = true
 
         try {
-          await axios.$delete(`/library/${this.library.id}/node/${node.path}`)
+          await axios.$delete(`/library/${this.library.id}/node/${node.path}`, {
+            delete_permanently: permanently,
+          })
           this.documentViewerDialogOpen = false
           this.deletedNodeName = node.basename
           this.nodeDeletedSnackbarOpen = true

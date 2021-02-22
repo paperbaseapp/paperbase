@@ -16,6 +16,7 @@ class LibraryNode implements \JsonSerializable
     public const TYPE_DIRECTORY = 'directory';
 
     public const FLAG_TRASH = 'trash';
+    public const FLAG_TRASHED = 'trashed';
     public const FLAG_INBOX = 'inbox';
 
     protected \SplFileInfo $fileInfo;
@@ -77,6 +78,9 @@ class LibraryNode implements \JsonSerializable
         }
         if ($absolutePath === $this->library->getAbsolutePath($this->library->inbox_path)) {
             $flags[] = self::FLAG_INBOX;
+        }
+        if (Str::of($absolutePath)->startsWith($this->library->getAbsolutePath($this->library->trash_path))) {
+            $flags[] = self::FLAG_TRASHED;
         }
 
         return $flags;

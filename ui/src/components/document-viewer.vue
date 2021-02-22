@@ -77,7 +77,7 @@
         </v-list-item>
         <v-list-item>
           <v-btn
-            :color="movingToTrash ? 'error' : null"
+            :color="movingToTrash || isTrashed ? 'error' : null"
             :disabled="loading"
             block
             class="delete-button"
@@ -85,9 +85,9 @@
             @click="onDeleteClick"
           >
             <v-icon v-if="!movingToTrash" left>
-              mdi-delete-outline
+              {{ isTrashed ? 'mdi-delete-forever-outline' : 'mdi-delete-outline' }}
             </v-icon>
-            {{ movingToTrash ? 'Confirm deletion' : 'Delete' }}
+            {{ movingToTrash ? 'Confirm deletion' : (isTrashed ? 'Delete' : 'Move to Trash') }}
           </v-btn>
         </v-list-item>
       </v-list>
@@ -142,6 +142,9 @@
         }
 
         return (this.forceOcrJob.progress_now / (this.forceOcrJob.progress_max || 1)) * 100
+      },
+      isTrashed() {
+        return this.node.flags.includes('trashed')
       },
     },
     watch: {
@@ -199,7 +202,7 @@
         if (!this.movingToTrash) {
           this.movingToTrash = true
         } else {
-          this.$emit('delete')
+          this.$emit('delete', this.isTrashed)
         }
       },
     },
