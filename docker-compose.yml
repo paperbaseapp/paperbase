@@ -6,18 +6,18 @@ volumes:
   meilisearch: { }
 
 services:
-  # reverse_proxy:
-  #   image: traefik
-  #   command:
-  #     - --api.insecure=true
-  #     - --providers.docker=true
-  #     - --providers.docker.exposedbydefault=false
-  #     - --entrypoints.web.address=:80
-  #   ports:
-  #     - 80:80
-  #     - 8080:8080
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  reverse_proxy:
+    image: traefik
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - 80:80
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
   app:
     build:
       context: .
@@ -29,11 +29,7 @@ services:
     restart: on-failure
     labels:
       - traefik.enable=true
-      - traefik.http.routers.app.entrypoints=web
       - traefik.http.routers.api.rule=(Host(`paperbase.localhost`) && PathPrefix(`/api`)) || Host(`telescope.paperbase.localhost`)
-    networks:
-      - traefik
-      - default
   worker:
     build:
       context: .
@@ -60,11 +56,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.ui.rule=Host(`paperbase.localhost`)
-      - traefik.http.routers.ui.entrypoints=web
       - traefik.http.services.ui.loadbalancer.server.port=8080
-    networks:
-      - traefik
-      - default
   db:
     image: postgres:13-alpine
     ports:
@@ -85,18 +77,10 @@ services:
       - meilisearch:/data
     labels:
       - traefik.enable=true
-      - traefik.http.routers.search.rule=Host(`search.paperbase.local`)
+      - traefik.http.routers.search.rule=Host(`search.paperbase.localhost`)
       - traefik.http.services.search.loadbalancer.server.port=7700
     environment:
       MEILI_MASTER_KEY: ${MEILISEARCH_KEY}
       MEILI_DB_PATH: '/data/database.ms'
       MEILI_NO_ANALYTICS: 'true'
       MEILI_NO_SENTRY: 'true'
-    networks:
-      - traefik
-      - default
-
-networks:
-  traefik:
-    external: true
-  default:

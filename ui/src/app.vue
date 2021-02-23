@@ -9,7 +9,7 @@
         <v-icon>mdi-arrow-left</v-icon>
       </v-btn>
       <v-toolbar-title>{{ $route.meta.title || '' }}</v-toolbar-title>
-      <v-spacer/>
+      <v-spacer />
       <v-menu v-if="$store.getters.globalBatchProgress !== null" offset-y>
         <template v-slot:activator="{on, attrs}">
           <v-btn v-bind="attrs" v-on="on" class="mr-3" icon>
@@ -47,9 +47,9 @@
           </v-list>
         </v-card>
       </v-menu>
-      <portal-target name="app-bar-end"/>
+      <portal-target name="app-bar-end" />
       <template v-if="!!$route.meta.hasTabs" v-slot:extension>
-        <portal-target name="tabs" slim/>
+        <portal-target name="tabs" slim />
       </template>
       <v-menu v-if="$store.state.user !== null" bottom offset-y rounded>
         <template v-slot:activator="{ on }">
@@ -73,7 +73,7 @@
                 </div>
               </v-list-item-content>
             </v-list-item>
-            <v-divider/>
+            <v-divider />
             <v-list-item @click="logout">
               <v-list-item-title>
                 <v-icon left>mdi-logout</v-icon>
@@ -86,7 +86,7 @@
     </v-app-bar>
     <v-main>
       <transition mode="out-in" name="page-transition">
-        <router-view/>
+        <router-view />
       </transition>
     </v-main>
   </v-app>
