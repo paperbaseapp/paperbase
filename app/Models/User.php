@@ -14,6 +14,8 @@ use Laravel\Sanctum\HasApiTokens;
  * Class User
  * @package App\Models
  * @property string account
+ * @property string display_name
+ * @property string email
  * @property string password
  * @property Library[]|Collection libraries
  */
@@ -26,8 +28,11 @@ class User extends BaseModel implements Authenticatable
 
     protected $visible = [
         'account',
+        'email',
+        'display_name',
     ];
 
+    /** @noinspection PhpIncompatibleReturnTypeInspection */
     public static function current(): ?User
     {
         return Auth::user();
