@@ -2,11 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\OCRPDFJob;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class UserCreateCommand extends Command
 {
@@ -35,7 +34,16 @@ class UserCreateCommand extends Command
         $user = new User();
 
         $user->account = $this->ask('Account');
+        $user->display_name = $this->ask('Display name');
+        do {
+            $user->email = $this->ask('Email address (optional)');
+            $validator = Validator::make(['email' => $user->email], ['email' => 'email|nullable']);
+            if ($validator->fails()) {
+                $this->line('Entered email address is not valid.');
+            }
+        } while ($validator->fails());
         $user->password = Hash::make($this->secret('Password'));
+
 
         $user->save();
 

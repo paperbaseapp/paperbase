@@ -37,4 +37,10 @@ class AuthController extends Controller
 
         throw new AccessDeniedHttpException();
     }
+
+    public function logout()
+    {
+        Auth::logout();
+        return response()->noContent();
+    }
 }

@@ -17,7 +17,9 @@ class CreateUsersTable extends Migration
             $table->uuid('id')->primary();
 
             $table->string('account');
+            $table->string('display_name');
             $table->string('password', 128); // Argon2
+            $table->string('email')->nullable();
             $table->rememberToken();
 
             $table->timestamps();
