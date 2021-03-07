@@ -44,7 +44,7 @@ services:
       - 80
     labels:
       - traefik.enable=true
-      - traefik.http.routers.taco.rule=Host(`$PAPERBASE_DOMAIN`)
+      - traefik.http.routers.paperbase.rule=Host(`$PAPERBASE_DOMAIN`)
   worker:
     image: paperbaseapp/paperbase
     env_file: .env
