@@ -10,21 +10,25 @@
 
         <v-spacer/>
 
-        <v-menu v-model="createDirectoryDialogOpen" :close-on-content-click="false">
+        <input ref="fileUploadInput" @input="uploadFile" type="file" class="d-none" />
+        <v-btn class="mr-1" depressed @click="$refs.fileUploadInput.click()">
+          <v-icon>mdi-file-upload-outline</v-icon>
+        </v-btn>
+
+        <v-menu v-model="createDirectoryDialogOpen" offset-y attach :close-on-content-click="false">
           <template v-slot:activator="{ on }">
-            <div class="pr-1">
-              <v-btn v-on="on" depressed>
-                <v-icon>mdi-folder-plus</v-icon>
-              </v-btn>
-            </div>
+            <v-btn v-on="on" class="mr-1" depressed>
+              <v-icon>mdi-folder-plus-outline</v-icon>
+            </v-btn>
           </template>
           <v-card>
             <h4 class="pa-3 my-0">Create directory</h4>
             <v-text-field
               v-model="newDirectoryName"
               :error-messages="createDirectoryErrorMessages"
-              hide-details
+              :hide-details="createDirectoryErrorMessages.length === 0"
               solo
+              flat
               autofocus
               append-icon="mdi-check"
               @click:append="createDirectory"
@@ -142,7 +146,7 @@
   import LibraryNodeView from '@/components/library-node-view'
   import DocumentViewer from '@/components/document-viewer'
   import {LibraryNodeContainer} from '@/lib/data-container/LibraryNodeContainer'
-  import {LOCKED} from '@/lib/statuses'
+  import {CONFLICT, LOCKED} from '@/lib/statuses'
 
   export default {
     name: 'library-explorer-view',
@@ -173,8 +177,8 @@
       snackbarOpen: false,
       snackbarText: '',
       newDirectoryName: '',
-      createDirectoryErrorMessages:'',
-      createDirectoryDialogOpen:'',
+      createDirectoryErrorMessages: [],
+      createDirectoryDialogOpen: '',
     }),
     watch: {
       library() {
@@ -262,7 +266,11 @@
     },
     methods: {
       async fetch() {
-        const node = LibraryNodeContainer.wrap(await axios.$get(`/library/${this.library.id}/node/${this.currentPath}`))
+        const node = LibraryNodeContainer.wrap(await axios.$get(`/library/${this.library.id}/node`, {
+          params: {
+            path: this.currentPath,
+          }
+        }))
 
         this.currentNode = node
 
@@ -279,7 +287,11 @@
         this.loading = true
 
         try {
-          const data = await axios.$get(`/library/${this.library.id}/browse/${this.currentDirectoryPath}`)
+          const data = await axios.$get(`/library/${this.library.id}/browse`, {
+            params: {
+              path: this.currentDirectoryPath,
+            }
+          })
           this.items = LibraryNodeContainer.wrap(data.items)
           this.parentPath = data.parent_path
         } catch (e) {
@@ -307,8 +319,9 @@
         this.loading = true
 
         try {
-          await axios.$delete(`/library/${this.library.id}/node/${node.path}`, {
+          await axios.$delete(`/library/${this.library.id}/node`, {
             delete_permanently: permanently,
+            path: this.currentPath,
           })
           this.documentViewerDialogOpen = false
           this.snackbarText = node.basename + ' deleted.'
@@ -326,17 +339,41 @@
         this.loading = false
       },
       async createDirectory(){
-        this.loading = true;
-
         try {
-          await axios.$post(`/library/${this.library.id}/directory/${this.currentNode.path}/${this.newDirectoryName}`)
+          await axios.$post(`/library/${this.library.id}/directory`, {
+            path: this.currentNode.path + '/' + this.newDirectoryName,
+          })
           this.createDirectoryDialogOpen = false
           this.newDirectoryName = ''
           this.createDirectoryErrorMessages = ''
           await this.browse()
         } catch (e) {
           console.error(e)
-          this.createDirectoryErrorMessages = ['An error occurred.']
+
+          this.createDirectoryErrorMessages = e.response?.status === CONFLICT
+            ? ['Already exists']
+            : ['An error occurred.']
+        }
+      },
+      async uploadFile() {
+        const data = new FormData()
+
+        for (const file of this.$refs.fileUploadInput.files) {
+          data.append('files[]', file)
+        }
+
+        data.append('path', this.currentDirectoryPath)
+
+        try {
+          await axios.$post(`/library/${this.library.id}/file`, data, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+
+          await this.browse()
+        } catch (e) {
+          console.error(e)
         }
       },
     },

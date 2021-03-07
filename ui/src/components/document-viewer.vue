@@ -183,7 +183,7 @@
         this.forceOcrLoading = false
 
         this.$refs.embed.innerHTML = ''
-        let url = `${axios.defaults.baseURL}/library/${this.libraryId}/download/${this.node.path}`
+        let url = `${axios.defaults.baseURL}/library/${this.libraryId}/download/${this.node.basename}?path=${encodeURIComponent(this.node.path)}`
 
         if (this.page) {
           url += `#page=${this.page}`

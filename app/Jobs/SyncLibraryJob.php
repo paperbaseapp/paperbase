@@ -234,14 +234,9 @@ class SyncLibraryJob implements ShouldQueue
             } else {
                 // We didn't find a non-existent document record with the same hash,
                 // so this is likely a new file
-                $document = new Document();
-                $document->path = $path;
-                $document->last_hash = $getHash();
-                $document->last_mtime = $mtime;
-                $this->library->documents()->save($document);
+                $document = $this->library->addDocumentFromPath($info, $getHash());
                 $changedDocuments[] = $document->only(['id', 'path', 'title']);
-                $jobs[] = new GenerateThumbnailsJob($document);
-                $jobs[] = new GenerateOCRJob($document);
+                collect($document->getPendingJobs())->each(fn($job) => $jobs[] = $job);
             }
         }
     }

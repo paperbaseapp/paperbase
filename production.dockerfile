@@ -37,10 +37,14 @@ RUN apt-get update -y \
     && sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf\
     && echo "www-data ALL=NOPASSWD:SETENV: /app/scripts/fix-permissions.sh" >> /etc/sudoers.d/paperbase \
-    && echo "www-data ALL=NOPASSWD:SETENV: /app/scripts/set-library-owner.sh" >> /etc/sudoers.d/paperbase
+    && echo "www-data ALL=NOPASSWD:SETENV: /app/scripts/set-owner.sh" >> /etc/sudoers.d/paperbase
 
-RUN apt-get install -y python3 python3-pip poppler-utils tesseract-ocr-deu tesseract-ocr-spa tesseract-ocr-fra libqpdf-dev ghostscript \
-    && pip3 install ocrmypdf
+RUN apt-get install -y python3 python3-pip poppler-utils tesseract-ocr-deu tesseract-ocr-spa tesseract-ocr-fra libqpdf-dev ghostscript wget \
+    && cd /tmp \
+    && wget https://bootstrap.pypa.io/get-pip.py \
+    && python3 get-pip.py \
+    && rm get-pip.py \
+    && pip3 install ocrmypdf==11.7.1
 # TODO: add more languages with the tesseract-ocr-LANGUAGE
 # https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html
 

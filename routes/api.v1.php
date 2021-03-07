@@ -37,12 +37,13 @@ Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
         $router->get('/', [LibraryController::class, 'getAll']);
         $router->get('/{library}', [LibraryController::class, 'get']);
         $router->post('/{library}/sync', [LibraryController::class, 'sync']);
-        $router->get('/{library}/node{path}', [LibraryController::class, 'getNode'])->where('path', '(\/?.*)');
-        $router->delete('/{library}/node{path}', [LibraryController::class, 'deleteNode'])->where('path', '(\/?.*)');
-        $router->get('/{library}/browse{path}', [LibraryController::class, 'browse'])->where('path', '(\/?.*)');
-        $router->get('/{library}/download/{path}', [LibraryController::class, 'downloadFile'])->where('path', '(.+)');
+        $router->get('/{library}/node', [LibraryController::class, 'getNode']);
+        $router->delete('/{library}/node', [LibraryController::class, 'deleteNode']);
+        $router->get('/{library}/browse', [LibraryController::class, 'browse']);
+        $router->get('/{library}/download/{fakeName}', [LibraryController::class, 'downloadFile'])->where('fakeName', '(.+)');
         $router->get('/{library}/search', [LibraryController::class, 'search'])->name('search');
-        $router->post('/{library}/directory{path}', [LibraryController::class, 'createDirectory'])->where('path', '(\/?.*)');
+        $router->post('/{library}/directory', [LibraryController::class, 'createDirectory']);
+        $router->post('/{library}/file', [LibraryController::class, 'uploadFile']);
     });
 
     $router->group(['prefix' => '/document'], function (Router $router) {

@@ -7,4 +7,4 @@ if [ -z "$1" ] || [ -z "$2" ]; then
     echo "Exactly two paramters are required"
 fi
 
-chown -R "$2" /app/storage/libraries/"$1"
+chown -R "$2" "$1"

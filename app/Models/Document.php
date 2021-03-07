@@ -66,6 +66,9 @@ class Document extends Model implements LockableContract
         'trashed_at',
     ];
 
+    /** @var array Pending jobs for this document */
+    protected array $pendingJobs = [];
+
     protected static function booted()
     {
         static::deleting(function (Document $document) {
@@ -153,5 +156,21 @@ class Document extends Model implements LockableContract
     public static function hashFile(string $path): string
     {
         return hash_file('sha256', $path);
+    }
+
+    public function addPendingJob($job)
+    {
+        $this->pendingJobs[] = $job;
+    }
+
+    public function getPendingJobs(): array
+    {
+        return $this->pendingJobs;
+    }
+
+    public function dispatchPendingJobs(): self
+    {
+        collect($this->pendingJobs)->each(fn($job) => dispatch($job));
+        return $this;
     }
 }
