@@ -92,11 +92,18 @@ class Library extends Model implements LockableContract
             : canonicalize_path(join_path($this->getAbsolutePath(), $toFile));
     }
 
+    public function isInsideLibrary(string $path, bool $absolute = false)
+    {
+        return $absolute
+            ? str_starts_with($path, $this->getAbsolutePath())
+            : str_starts_with($this->getAbsolutePath($path), $this->getAbsolutePath());
+    }
+
     public function getRelativePath(string $absoluteFilePath)
     {
         $absoluteFilePath = canonicalize_path($absoluteFilePath);
 
-        if (!str_starts_with($absoluteFilePath, $this->getAbsolutePath())) {
+        if (!$this->isInsideLibrary($absoluteFilePath, true)) {
             throw new InvalidArgumentException('File ' . $absoluteFilePath . ' is not inside library ' . $this->id);
         }
 
@@ -163,6 +170,11 @@ class Library extends Model implements LockableContract
         return rtrim(canonicalize_path($this->getAbsolutePath($relativePath)), '/') === $this->getAbsolutePath();
     }
 
+    public function hasNode(string $relativePath)
+    {
+        return file_exists($this->getAbsolutePath($relativePath));
+    }
+
     public function hasFile(string $relativePath)
     {
         return is_file($this->getAbsolutePath($relativePath));
@@ -173,9 +185,22 @@ class Library extends Model implements LockableContract
         return is_dir($this->getAbsolutePath($relativePath));
     }
 
-    public function getAvailableTrashPath(string $filename)
+
+    /**
+     * Takes a path to a file or directory. If the target path
+     * already exists, it appends a number to the target until
+     * a non-existing path is found.
+     */
+    public function getSafeFilename(string $relativePath)
     {
         $counter = 1;
+
+        if (!file_exists($this->getAbsolutePath($relativePath))) {
+            return $relativePath;
+        }
+
+        $dirname = dirname($relativePath);
+        $filename = basename($relativePath);
 
         do {
             $count = $counter++;
@@ -191,9 +216,14 @@ class Library extends Model implements LockableContract
             }
 
             $targetFilename = join('.', $targetFilenameSplit);
-            $targetTrashPath = join_path($this->trash_path, $targetFilename);
-        } while (file_exists($this->getAbsolutePath($targetTrashPath)));
+            $targetPath = join_path($dirname, $targetFilename);
+        } while (file_exists($this->getAbsolutePath($targetPath)));
 
-        return $targetTrashPath;
+        return $targetPath;
+    }
+
+    public function getAvailableTrashPath(string $filename)
+    {
+        return $this->getSafeFilename(join_path($this->trash_path, $filename));
     }
 }

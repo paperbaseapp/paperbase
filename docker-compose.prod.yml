@@ -10,6 +10,27 @@ volumes:
   storage: {}
 
 services:
+  reverse_proxy:
+    image: traefik
+    restart: always
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web80.address=:80
+
+      # Delete the following arguments to disable HTTPS
+      - --entrypoints.web443.address=:443
+      - --certificatesresolvers.letsencrypt=true
+      - --certificatesresolvers.letsencrypt.acme.email=$LETSENCRYPT_EMAIL
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --entrypoints.web443.http.tls=true
+      - --entrypoints.web443.http.tls.certresolver=letsencrypt
+      - --entrypoints.web80.http.redirections.entrypoint.to=web443
+    ports:
+      - 80:80
+      - 443:443 # Only needed for HTTPS
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
   app:
     image: paperbaseapp/paperbase
     env_file: .env
@@ -22,9 +43,8 @@ services:
     expose:
       - 80
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.taco.rule=Host(`mypaperbase.example.com`)"
-      - "traefik.http.routers.taco.tls.certresolver=default"
+      - traefik.enable=true
+      - traefik.http.routers.taco.rule=Host(`$PAPERBASE_DOMAIN`)
   worker:
     image: paperbaseapp/paperbase
     env_file: .env

@@ -5,8 +5,8 @@
         <div class="flex-grow-1 d-flex justify-center align-end">
           <login-form />
         </div>
-        <div class="flex-grow-1 pt-3 teaser">
-          paperbase
+        <div class="flex-grow-1 pt-5 teaser">
+          <img src="../assets/logo-text-dark.svg">
         </div>
       </v-container>
     </v-fade-transition>
@@ -44,9 +44,15 @@
   }
 
   .teaser {
-    color: lightgray;
-    letter-spacing: 8px;
-    font-size: small;
-    text-transform: uppercase;
+    img {
+      height: 2em;
+      width: auto;
+      opacity: 0.25;
+      transition: opacity 200ms;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
   }
 </style>
