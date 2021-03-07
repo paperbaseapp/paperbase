@@ -106,8 +106,8 @@
       </div>
     </v-dialog>
 
-    <v-snackbar top right v-model="nodeDeletedSnackbarOpen" :timeout="5000">
-      {{ deletedNodeName }} deleted.
+    <v-snackbar top right v-model="snackbarOpen" :timeout="5000">
+      {{ snackbarText }}
     </v-snackbar>
   </div>
 </template>
@@ -118,6 +118,7 @@
   import LibraryNodeView from '@/components/library-node-view'
   import DocumentViewer from '@/components/document-viewer'
   import {LibraryNodeContainer} from '@/lib/data-container/LibraryNodeContainer'
+  import {LOCKED} from '@/lib/statuses'
 
   export default {
     name: 'library-explorer-view',
@@ -145,8 +146,8 @@
       documentViewerNode: null,
       documentViewerParentNode: null,
       documentViewerPage: null,
-      nodeDeletedSnackbarOpen: false,
-      deletedNodeName: '',
+      snackbarOpen: false,
+      snackbarText: '',
     }),
     watch: {
       library() {
@@ -283,11 +284,16 @@
             delete_permanently: permanently,
           })
           this.documentViewerDialogOpen = false
-          this.deletedNodeName = node.basename
-          this.nodeDeletedSnackbarOpen = true
+          this.snackbarText = node.basename + ' deleted.'
+          this.snackbarOpen = true
           await this.browse()
         } catch (e) {
           console.error(e)
+
+          if (e.response?.status === LOCKED) {
+            this.snackbarText = `Could not delete ${node.basename}. The file is currently locked by another process (e.g. OCR)`
+            this.snackbarOpen = true
+          }
         }
 
         this.loading = false

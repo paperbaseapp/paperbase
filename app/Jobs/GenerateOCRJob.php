@@ -110,7 +110,6 @@ class GenerateOCRJob extends SafeJob implements ShouldQueue
                 $this->document->save();
                 $lock->release();
             } else {
-                Log::info('COULD NOT GET LOCK');
                 $this->release(10);
             }
 
