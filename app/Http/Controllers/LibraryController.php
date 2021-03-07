@@ -8,8 +8,10 @@ use App\Jobs\SyncLibraryJob;
 use App\Models\DocumentPage;
 use App\Models\Library;
 use App\Models\User;
+use App\Script;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Imtigger\LaravelJobStatus\JobStatus;
 use MeiliSearch\Client as MeilisearchClient;
 use MeiliSearch\Endpoints\Indexes;
@@ -133,6 +135,12 @@ class LibraryController extends Controller
     {
         $newDirectoryPath = $library->getRelativePath($library->getAbsolutePath($path));
         mkdir($library->getAbsolutePath($newDirectoryPath), recursive: true);
+        if (config('paperbase.library_directory_owner_uid') !== null) {
+            Script::run('set-library-owner.sh', [
+                $library->getAbsolutePath($newDirectoryPath),
+                config('paperbase.library_directory_owner_uid'),
+            ]);
+        }
 
         return $library->getLibraryNodeAt($newDirectoryPath);
     }
