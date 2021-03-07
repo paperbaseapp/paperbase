@@ -4,21 +4,19 @@
 namespace App\Http\Controllers;
 
 
-use App\Exceptions\CouldNotAcquireLockException;
 use App\Jobs\SyncLibraryJob;
 use App\Models\DocumentPage;
 use App\Models\Library;
 use App\Models\User;
+use App\Script;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Imtigger\LaravelJobStatus\JobStatus;
 use MeiliSearch\Client as MeilisearchClient;
 use MeiliSearch\Endpoints\Indexes;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Symfony\Component\Mime\MimeTypes;
 
 class LibraryController extends Controller
 {
@@ -54,8 +52,11 @@ class LibraryController extends Controller
         return response()->json(JobStatus::query()->whereKey($job->getJobStatusId())->firstOrFail());
     }
 
-    public function browse(Library $library, string $path = '')
+    public function browse(Library $library)
     {
+        $this->validateWith(['path' => 'string|nullable']);
+        $path = request('path', '/');
+
         $items = collect($library->browseDirectory($path))
             ->map->jsonSerialize()
             ->sortBy('basename', SORT_NATURAL | SORT_FLAG_CASE)
@@ -70,13 +71,17 @@ class LibraryController extends Controller
         ]);
     }
 
-    public function getNode(Library $library, string $path = '')
+    public function getNode(Library $library)
     {
-        return $library->getLibraryNodeAt($path);
+        $this->validateWith(['path' => 'string|nullable']);
+        return $library->getLibraryNodeAt(request('path', '/'));
     }
 
-    public function downloadFile(Library $library, string $path)
+    public function downloadFile(Library $library)
     {
+        $this->validateWith(['path' => 'string|nullable']);
+        $path = request('path', '/');
+
         if ($library->hasFile($path)) {
             $node = $library->getLibraryNodeAt($path);
             $cacheOptions = [];
@@ -117,12 +122,14 @@ class LibraryController extends Controller
             ->makeVisible('search_metadata');
     }
 
-    public function deleteNode(Library $library, string $path)
+    public function deleteNode(Library $library)
     {
         $this->validateWith([
             'delete_permanently' => 'boolean|sometimes',
+            'path' => 'string|nullable',
         ]);
 
+        $path = request('path', '/');
         $node = $library->getLibraryNodeAt($path);
 
         if (request('delete_permanently')) {
@@ -134,27 +141,65 @@ class LibraryController extends Controller
         return response()->noContent();
     }
 
-    public function uploadFile(Library $library, string $path)
+    public function uploadFile(Library $library)
     {
         $this->validateWith([
-            'file' => 'file|required',
+            'files' => 'array|required',
+            'files.*' => 'file',
+            'path' => 'string|nullable',
         ]);
 
-        $file = request()->file('file');
+        $path = request('path', '/');
+        $files = request()->file('files');
 
-        if (empty($file->getClientOriginalName())) {
-            throw new BadRequestHttpException('Client did not supply a file name');
+        $documents = [];
+
+        foreach ($files as $file) {
+            if (empty($file->getClientOriginalName())) {
+                throw new BadRequestHttpException('Client did not supply a file name');
+            }
+
+            $targetFile = join_path($path, $file->getClientOriginalName());
+
+            if (!$library->isInsideLibrary($targetFile)) {
+                throw new BadRequestHttpException('Target file must be inside library');
+            }
+
+            $targetFile = $library->getSafeFilename($targetFile);
+
+            rename($file->path(), $library->getAbsolutePath($targetFile));
+
+            $documents[] = $library
+                ->addDocumentFromPath($library->getAbsolutePath($targetFile))
+                ->dispatchPendingJobs();
         }
 
-        $targetFile = join_path($path, $file->getClientOriginalName());
+        return $documents;
+    }
 
-        if (!$library->isInsideLibrary($targetFile)) {
-            throw new BadRequestHttpException('Target file must be inside library');
+    public function createDirectory(Library $library)
+    {
+        $this->validateWith(['path' => 'string|nullable']);
+        $path = request('path', '/');
+
+        if (!$library->isInsideLibrary($path)) {
+            throw new BadRequestHttpException('Path must be inside library');
         }
 
-        if ($library->hasNode($targetFile)) {
-
+        if ($library->hasNode($path)) {
+            throw new ConflictHttpException();
         }
+
+        mkdir($library->getAbsolutePath($path), recursive: true);
+
+        if (config('paperbase.library_directory_owner_uid') !== null) {
+            Script::run('set-owner.sh', [
+                $library->getAbsolutePath($path),
+                config('paperbase.library_directory_owner_uid'),
+            ]);
+        }
+
+        return $library->getLibraryNodeAt($path);
     }
 }
 

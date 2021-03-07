@@ -4,6 +4,7 @@
 namespace App\Jobs;
 
 
+use Illuminate\Contracts\Queue\Job;
 use Illuminate\Support\Facades\Log;
 
 abstract class SafeJob

@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Jobs\GenerateOCRJob;
+use App\Jobs\GenerateThumbnailsJob;
 use App\Models\Stateless\LibraryNode;
 use App\Models\Traits\Lockable;
 use App\Models\Traits\LockableContract;
 use App\Models\Traits\UsesPrimaryUuid;
 use App\Script;
+use Carbon\Carbon;
 use DirectoryIterator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Ramsey\Collection\Collection;
@@ -19,7 +21,6 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use function PHPUnit\Framework\fileExists;
 
 /**
  * Class Library
@@ -57,8 +58,8 @@ class Library extends Model implements LockableContract
             chmod($library->getAbsolutePath($library->inbox_path), 0770);
 
             if (config('paperbase.library_directory_owner_uid') !== null) {
-                Script::run('set-library-owner.sh', [
-                    $library->getLibraryDirectoryName(),
+                Script::run('set-owner.sh', [
+                    $library->getAbsolutePath(),
                     config('paperbase.library_directory_owner_uid'),
                 ]);
             }
@@ -211,7 +212,7 @@ class Library extends Model implements LockableContract
                 $targetFilenameSplit[] = $filenameSplit[$i];
 
                 if ($i === max(count($filenameSplit) - 2, 0) && $count > 1) {
-                    $targetFilenameSplit[] = " $count";
+                    $targetFilenameSplit[count($targetFilenameSplit) - 1] .= " $count";
                 }
             }
 
