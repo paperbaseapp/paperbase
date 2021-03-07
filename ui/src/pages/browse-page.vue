@@ -9,6 +9,7 @@
         item-text="name"
         item-value="id"
         placeholder="Select Library"
+        background-color="secondary"
         solo
       >
         <template v-slot:item="{ item }">
@@ -40,7 +41,7 @@
     </v-dialog>
 
     <template v-if="!!realSelectedLibraryId">
-      <library-search-bar :library-id="realSelectedLibraryId" />
+      <library-search-bar class="mt-5" :library-id="realSelectedLibraryId" />
       <library-view :library-id="realSelectedLibraryId" />
     </template>
   </v-container>

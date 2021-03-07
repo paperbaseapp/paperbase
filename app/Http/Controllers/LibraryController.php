@@ -4,18 +4,21 @@
 namespace App\Http\Controllers;
 
 
+use App\Exceptions\CouldNotAcquireLockException;
 use App\Jobs\SyncLibraryJob;
 use App\Models\DocumentPage;
 use App\Models\Library;
 use App\Models\User;
-use App\Script;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Imtigger\LaravelJobStatus\JobStatus;
 use MeiliSearch\Client as MeilisearchClient;
 use MeiliSearch\Endpoints\Indexes;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use Symfony\Component\Mime\MimeTypes;
 
 class LibraryController extends Controller
 {
@@ -131,18 +134,27 @@ class LibraryController extends Controller
         return response()->noContent();
     }
 
-    public function createDirectory(Library $library, string $path)
+    public function uploadFile(Library $library, string $path)
     {
-        $newDirectoryPath = $library->getRelativePath($library->getAbsolutePath($path));
-        mkdir($library->getAbsolutePath($newDirectoryPath), recursive: true);
-        if (config('paperbase.library_directory_owner_uid') !== null) {
-            Script::run('set-library-owner.sh', [
-                $library->getAbsolutePath($newDirectoryPath),
-                config('paperbase.library_directory_owner_uid'),
-            ]);
+        $this->validateWith([
+            'file' => 'file|required',
+        ]);
+
+        $file = request()->file('file');
+
+        if (empty($file->getClientOriginalName())) {
+            throw new BadRequestHttpException('Client did not supply a file name');
         }
 
-        return $library->getLibraryNodeAt($newDirectoryPath);
+        $targetFile = join_path($path, $file->getClientOriginalName());
+
+        if (!$library->isInsideLibrary($targetFile)) {
+            throw new BadRequestHttpException('Target file must be inside library');
+        }
+
+        if ($library->hasNode($targetFile)) {
+
+        }
     }
 }
 

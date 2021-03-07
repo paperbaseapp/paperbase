@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar :value="$store.getters.isLoggedIn && !$route.meta.hideNavigation" app>
+    <v-app-bar dark color="primary" :value="$store.getters.isLoggedIn && !$route.meta.hideNavigation" app>
       <v-btn
         v-if="$route.name !== 'browse'"
         icon
@@ -8,7 +8,10 @@
       >
         <v-icon>mdi-arrow-left</v-icon>
       </v-btn>
-      <v-toolbar-title>{{ $route.meta.title || '' }}</v-toolbar-title>
+      <div class="logo-container py-2">
+        <img class="logo pr-3" src="./assets/logo.svg" />
+        <div>{{ $route.meta.title || '' }}</div>
+      </div>
       <v-spacer />
       <v-menu v-if="$store.getters.globalBatchProgress !== null" offset-y>
         <template v-slot:activator="{on, attrs}">
@@ -53,9 +56,9 @@
       </template>
       <v-menu v-if="$store.state.user !== null" bottom offset-y rounded>
         <template v-slot:activator="{ on }">
-          <div class="pr-1">
-            <v-btn v-on="on" class="ml-3 mr-1" icon x-large>
-              <v-avatar color="brown" size="48">
+          <div>
+            <v-btn v-on="on" class="ml-3" icon x-large>
+              <v-avatar color="accent" size="48">
                 <span class="white--text headline">{{ $store.state.user.account[0] }}</span>
               </v-avatar>
             </v-btn>
@@ -106,3 +109,18 @@
     },
   }
 </script>
+
+<style lang="scss" scoped>
+  .logo-container {
+    flex-shrink: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+    position: relative;
+
+    .logo {
+      height: 100%;
+    }
+  }
+</style>
