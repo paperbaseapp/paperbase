@@ -1,4 +1,6 @@
 vendor
 ui/node_modules
-storage/libraries
-storage/thumbnails
+storage/libraries/*
+!storage/libraries/.gitignore
+storage/thumbnails/*
+!storage/thumbnails/.gitignore

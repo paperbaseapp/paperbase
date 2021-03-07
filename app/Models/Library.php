@@ -227,4 +227,24 @@ class Library extends Model implements LockableContract
     {
         return $this->getSafeFilename(join_path($this->trash_path, $filename));
     }
+
+    public function addDocumentFromPath(string|SplFileInfo $absolutePathOrFileInfo, ?string $hash = null): Document
+    {
+        if (is_string($absolutePathOrFileInfo)) {
+            $fileInfo = new SplFileInfo($absolutePathOrFileInfo);
+        } else {
+            $fileInfo = $absolutePathOrFileInfo;
+        }
+
+        $document = new Document();
+        $document->path = $this->getRelativePath($fileInfo->getRealPath());
+        $document->last_hash = $hash ?? Document::hashFile($fileInfo->getRealPath());
+        $document->last_mtime = Carbon::createFromTimestamp($fileInfo->getMTime());
+        $this->documents()->save($document);
+
+        $document->addPendingJob(new GenerateThumbnailsJob($document));
+        $document->addPendingJob(new GenerateOCRJob($document));
+
+        return $document;
+    }
 }

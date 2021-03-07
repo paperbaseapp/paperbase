@@ -320,8 +320,10 @@
 
         try {
           await axios.$delete(`/library/${this.library.id}/node`, {
-            delete_permanently: permanently,
-            path: this.currentPath,
+            data: {
+              delete_permanently: permanently,
+              path: this.currentPath,
+            }
           })
           this.documentViewerDialogOpen = false
           this.snackbarText = node.basename + ' deleted.'
