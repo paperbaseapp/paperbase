@@ -39,5 +39,5 @@ else
   wait-for-it -t 60 meilisearch:7700
 
   run_as_www_data php artisan migrate --force
-  exec /start.sh
+  exec apache2-foreground
 fi
