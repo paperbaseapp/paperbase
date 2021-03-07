@@ -21,9 +21,3 @@ Read [the docs](https://docs.paperbase.app) on how to set up your own Paperbase 
 3. `docker-compose up`
 4. Create a new user with `docker-compose exec app php artisan user:create`
 5. You can access Paperbase at `http://paperbase.localhost`
-
-## official docs (early work in progress)
-
-We created our [official docs](https://docs.paperbase.app/). Please note that they are in a very early state. In the
-following weeks we will supplement feature by feature. 
-
