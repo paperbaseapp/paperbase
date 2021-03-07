@@ -1,9 +1,5 @@
 version: '3'
 
-networks:
-  web:
-    external: true
-
 volumes:
   db: {}
   redis: {}
@@ -37,9 +33,6 @@ services:
     volumes:
       - storage:/app/storage
     restart: always
-    networks:
-      - web
-      - default
     expose:
       - 80
     labels:

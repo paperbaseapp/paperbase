@@ -32,8 +32,10 @@ else
   chgrp -R www-data /app/storage
   chmod -R g+rw /app/storage
 
-  echo "Waiting for db:5432..."
-  wait-for -t 60 db:5432
+  echo "Waiting for db..."
+  wait-for-it -t 60 db:5432
+
+  echo "Waiting for meilisearch..."
   wait-for-it -t 60 meilisearch:7700
 
   run_as_www_data php artisan migrate --force
