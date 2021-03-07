@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Imtigger\LaravelJobStatus\JobStatus;
 use MeiliSearch\Client as MeilisearchClient;
 use MeiliSearch\Endpoints\Indexes;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Mime\MimeTypes;
@@ -131,6 +132,29 @@ class LibraryController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    public function uploadFile(Library $library, string $path)
+    {
+        $this->validateWith([
+            'file' => 'file|required',
+        ]);
+
+        $file = request()->file('file');
+
+        if (empty($file->getClientOriginalName())) {
+            throw new BadRequestHttpException('Client did not supply a file name');
+        }
+
+        $targetFile = join_path($path, $file->getClientOriginalName());
+
+        if (!$library->isInsideLibrary($targetFile)) {
+            throw new BadRequestHttpException('Target file must be inside library');
+        }
+
+        if ($library->hasNode($targetFile)) {
+
+        }
     }
 }
 

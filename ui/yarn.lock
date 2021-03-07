@@ -877,7 +877,7 @@
     cssnano-preset-default "^4.0.0"
     postcss "^7.0.0"
 
-"@mdi/font@^5.9.55":
+"@mdi/font@5.9.55":
   version "5.9.55"
   resolved "https://registry.yarnpkg.com/@mdi/font/-/font-5.9.55.tgz#41acd50b88073ded7095fc3029d8712b6e12f38e"
   integrity sha512-jswRF6q3eq8NWpWiqct6q+6Fg/I7nUhrxYJfiEM8JJpap0wVJLQdbKtyS65GdlK7S7Ytnx3TTi/bmw+tBhkGmg==
@@ -8304,10 +8304,10 @@ vm-browserify@^1.0.1:
   resolved "https://registry.yarnpkg.com/vm-browserify/-/vm-browserify-1.1.2.tgz#78641c488b8e6ca91a75f511e7a3b32a86e5dda0"
   integrity sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==
 
-vue-cli-plugin-vuetify@~2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/vue-cli-plugin-vuetify/-/vue-cli-plugin-vuetify-2.1.0.tgz#1261d5866bca8f5c256f1b13abad2568fbcd6bb2"
-  integrity sha512-cvJR2+6U1PS4UUP7NnuylWfxM3LrzKnusOgrCZUyzr5abyDxf/t0TZy5EqfJwAa9/TsIO0W4gOoaoy/f4Yw0aQ==
+vue-cli-plugin-vuetify@~2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/vue-cli-plugin-vuetify/-/vue-cli-plugin-vuetify-2.2.2.tgz#4b29854ad199d811941b8ca894ca34593127e0bf"
+  integrity sha512-e0p9fuc7YDDUjTi8Uw5XNEwfTZmY+5+kZ22k9ZGsWtDOtWt1dW/oZt3aZtSLrhzEPSimkOWNBD7KZOB3fxNEGA==
   dependencies:
     null-loader "^3.0.0"
     semver "^7.1.2"

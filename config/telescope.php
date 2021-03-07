@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'domain' => env('TELESCOPE_DOMAIN', 'telescope.paperbase.localhost'),
+    'domain' => env('TELESCOPE_DOMAIN', 'telescope.' . env('PAPERBASE_DOMAIN', 'paperbase.localhost')),
 
     /*
     |--------------------------------------------------------------------------

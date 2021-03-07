@@ -7,6 +7,7 @@
     no-filter
     auto-select-first
     item-text="document.basename"
+    prepend-inner-icon="mdi-magnify"
     placeholder="Search in library"
     solo
   >
