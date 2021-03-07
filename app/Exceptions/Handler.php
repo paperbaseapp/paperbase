@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Response;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -13,7 +14,7 @@ class Handler extends ExceptionHandler
      * @var array
      */
     protected $dontReport = [
-        //
+        CouldNotAcquireLockException::class,
     ];
 
     /**
@@ -33,8 +34,8 @@ class Handler extends ExceptionHandler
      */
     public function register()
     {
-        $this->reportable(function (Throwable $e) {
-            //
+        $this->reportable(function (CouldNotAcquireLockException $e, $request) {
+            return response()->noContent(status: Response::HTTP_LOCKED);
         });
     }
 }

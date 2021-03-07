@@ -4,18 +4,19 @@
 namespace App\Http\Controllers;
 
 
+use App\Exceptions\CouldNotAcquireLockException;
 use App\Jobs\SyncLibraryJob;
 use App\Models\DocumentPage;
 use App\Models\Library;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Imtigger\LaravelJobStatus\JobStatus;
-use Laravel\Telescope\Telescope;
 use MeiliSearch\Client as MeilisearchClient;
 use MeiliSearch\Endpoints\Indexes;
-use SplFileInfo;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Mime\MimeTypes;
 
 class LibraryController extends Controller
@@ -84,7 +85,7 @@ class LibraryController extends Controller
             }
 
             return response()->download($node->getFileInfo(), $node->getFileInfo()->getBasename(), [
-                'Content-Type' => MimeTypes::getDefault()->guessMimeType($library->getAbsolutePath($path)),
+                'Content-Type' => $node->getMime(),
             ], 'inline')->setCache($cacheOptions);
         }
 

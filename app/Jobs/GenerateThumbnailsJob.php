@@ -57,9 +57,9 @@ class GenerateThumbnailsJob extends SafeJob implements ShouldQueue
                     '-antialias',
                     'best',
                     '-scale-to',
-                    '400',
+                    '512',
                     '-jpegopt',
-                    'quality=60,progressive=y,optimize=y',
+                    'quality=75,progressive=y,optimize=y',
                 ]);
                 $process->setTimeout(10);
                 $process->start();

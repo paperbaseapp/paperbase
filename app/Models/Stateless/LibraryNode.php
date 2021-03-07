@@ -4,11 +4,12 @@
 namespace App\Models\Stateless;
 
 
+use App\Exceptions\CouldNotAcquireLockException;
 use App\Models\Document;
 use App\Models\Library;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Symfony\Component\Mime\MimeTypes;
 
 class LibraryNode implements \JsonSerializable
 {
@@ -16,6 +17,7 @@ class LibraryNode implements \JsonSerializable
     public const TYPE_DIRECTORY = 'directory';
 
     public const FLAG_TRASH = 'trash';
+    public const FLAG_TRASHED = 'trashed';
     public const FLAG_INBOX = 'inbox';
 
     protected \SplFileInfo $fileInfo;
@@ -78,8 +80,16 @@ class LibraryNode implements \JsonSerializable
         if ($absolutePath === $this->library->getAbsolutePath($this->library->inbox_path)) {
             $flags[] = self::FLAG_INBOX;
         }
+        if (Str::of($absolutePath)->startsWith($this->library->getAbsolutePath($this->library->trash_path))) {
+            $flags[] = self::FLAG_TRASHED;
+        }
 
         return $flags;
+    }
+
+    public function getMime(): ?string
+    {
+        return MimeTypes::getDefault()->guessMimeType($this->getAbsolutePath());
     }
 
     public function jsonSerialize()
@@ -97,6 +107,9 @@ class LibraryNode implements \JsonSerializable
         ];
     }
 
+    /**
+     * @throws CouldNotAcquireLockException
+     */
     public function moveToTrash()
     {
         $trashPath = $this->library->getAvailableTrashPath($this->getFileInfo()->getBasename());
@@ -110,6 +123,10 @@ class LibraryNode implements \JsonSerializable
 
             /** @var Document $document */
             foreach ($oldDocuments as $document) {
+                if (!$document->makeLock(3)->get()) {
+                    throw new CouldNotAcquireLockException();
+                }
+
                 $document->path = Str::of($document->path)->replaceFirst($this->path, $trashPath);
                 $document->trashed_at = Carbon::now();
                 $document->save();
@@ -117,6 +134,10 @@ class LibraryNode implements \JsonSerializable
         } else {
             $document = $this->getDocument();
             if ($document) {
+                if (!$document->makeLock(3)->get()) {
+                    throw new CouldNotAcquireLockException();
+                }
+
                 $document->path = $trashPath;
                 $document->trashed_at = Carbon::now();
                 $document->save();
@@ -128,9 +149,14 @@ class LibraryNode implements \JsonSerializable
 
     public function delete()
     {
-        unlink($this->fileInfo->getRealPath());
         if ($document = $this->getDocument()) {
+            if (!$document->makeLock(3)->get()) {
+                throw new CouldNotAcquireLockException();
+            }
+
             $document->delete();
         }
+
+        unlink($this->fileInfo->getRealPath());
     }
 }
