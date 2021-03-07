@@ -7,8 +7,32 @@
         <v-btn :disabled="parentPath === null" @click="navigateToPath(parentPath)" depressed>
           <v-icon>mdi-arrow-up</v-icon>
         </v-btn>
+
         <v-spacer/>
 
+        <v-menu v-model="createDirectoryDialogOpen" :close-on-content-click="false">
+          <template v-slot:activator="{ on }">
+            <div class="pr-1">
+              <v-btn v-on="on" depressed>
+                <v-icon>mdi-folder-plus</v-icon>
+              </v-btn>
+            </div>
+          </template>
+          <v-card>
+            <h4 class="pa-3 my-0">Create directory</h4>
+            <v-text-field
+              v-model="newDirectoryName"
+              :error-messages="createDirectoryErrorMessages"
+              hide-details
+              solo
+              autofocus
+              append-icon="mdi-check"
+              @click:append="createDirectory"
+              label="Name"
+              @keydown.enter="createDirectory"
+            />
+          </v-card>
+        </v-menu>
         <v-btn-toggle dense class="ma-0" mandatory v-model="displayMode">
           <v-btn value="grid">
             <v-icon>mdi-view-module-outline</v-icon>
@@ -148,6 +172,9 @@
       documentViewerPage: null,
       snackbarOpen: false,
       snackbarText: '',
+      newDirectoryName: '',
+      createDirectoryErrorMessages:'',
+      createDirectoryDialogOpen:'',
     }),
     watch: {
       library() {
@@ -297,6 +324,20 @@
         }
 
         this.loading = false
+      },
+      async createDirectory(){
+        this.loading = true;
+
+        try {
+          await axios.$post(`/library/${this.library.id}/directory/${this.currentNode.path}/${this.newDirectoryName}`)
+          this.createDirectoryDialogOpen = false
+          this.newDirectoryName = ''
+          this.createDirectoryErrorMessages = ''
+          await this.browse()
+        } catch (e) {
+          console.error(e)
+          this.createDirectoryErrorMessages = ['An error occurred.']
+        }
       },
     },
   }
