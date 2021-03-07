@@ -15,10 +15,6 @@ RUN yarn install \
     && mv /app/public/index.html /app/public/ui-index.html \
     && rm -rf /app/ui
 
-    && docker-php-ext-install pdo pgsql pdo_pgsql zip bcmath intl gmp \
-    && pecl install redis \
-    && docker-php-ext-enable redis
-
 # Final stage
 FROM php:8.0-apache
 
@@ -29,7 +25,7 @@ COPY --from=stage2 /app /app
 
 RUN apt-get update -y \
     && a2enmod rewrite \
-    && apt-get -y install libpq-dev libzip-dev libfreetype6-dev \
+    && apt-get -y install libpq-dev libzip-dev libfreetype6-dev sudo \
             libjpeg62-turbo-dev libpng-dev wait-for-it git unzip libicu-dev libgmp-dev \
     && docker-php-ext-install pdo pgsql pdo_pgsql zip bcmath intl gmp \
     && pecl install redis \
