@@ -1,4 +1,13 @@
-# Paperbase
+![Paperbase logo](./.github/logo.svg)
+
+![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/paperbaseapp/paperbase?style=for-the-badge)
+![License](https://img.shields.io/badge/license-AGPL%20v3-green?style=for-the-badge)
+![latest release](https://img.shields.io/github/v/release/paperbaseapp/paperbase?include_prereleases&style=for-the-badge)
+![Built with science](https://img.shields.io/badge/built%20with-science-lightgrey?style=for-the-badge)
+
+## Quick start
+
+Read [the docs](https://docs.paperbase.app) on how to set up your own Paperbase instance.
 
 ## Development setup
 
