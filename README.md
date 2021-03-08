@@ -1,4 +1,4 @@
-![Paperbase logo](./.github/logo.svg)
+![Paperbase logo](https://raw.githubusercontent.com/paperbaseapp/paperbase/main/.github/logo.svg)
 
 ![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/paperbaseapp/paperbase?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-AGPL%20v3-green?style=for-the-badge)
