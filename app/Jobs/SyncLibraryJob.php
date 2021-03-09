@@ -236,7 +236,9 @@ class SyncLibraryJob implements ShouldQueue
                 // so this is likely a new file
                 $document = $this->library->addDocumentFromPath($info, $getHash());
                 $changedDocuments[] = $document->only(['id', 'path', 'title']);
-                collect($document->getPendingJobs())->each(fn($job) => $jobs[] = $job);
+                foreach ($document->getPendingJobs() as $job) {
+                    $jobs[] = $job;
+                }
             }
         }
     }
