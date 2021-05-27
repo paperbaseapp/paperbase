@@ -1,21 +1,33 @@
 <template>
   <div>
-    <v-breadcrumbs class="px-0" :items="locationBreadcrumbs" />
+    <v-breadcrumbs :items="locationBreadcrumbs" class="px-0" />
 
-    <v-card class="overflow-hidden">
+    <v-card
+      class="overflow-hidden"
+      @dragover.native="event => nodeDragOver(event, currentNode)"
+      @drop.native="event => onNodeDrop(event, currentNode)"
+      @dragenter.native="event => onNodeDrop(event, currentNode)"
+      @dragleave.native="onNodeDragLeave"
+    >
       <div class="d-flex px-3 pt-3">
-        <v-btn :disabled="parentPath === null" @click="navigateToPath(parentPath)" depressed>
+        <v-btn
+          :disabled="parentPath === null"
+          depressed
+          @click="navigateToPath(parentPath)"
+          @dragenter="onNavigateToParentButtonDragEnter"
+          @dragleave="onNavigateToParentButtonDragLeave"
+        >
           <v-icon>mdi-arrow-up</v-icon>
         </v-btn>
 
-        <v-spacer/>
+        <v-spacer />
 
-        <input ref="fileUploadInput" @input="uploadFile" type="file" class="d-none" />
+        <input ref="fileUploadInput" class="d-none" type="file" @input="uploadFile" />
         <v-btn class="mr-1" depressed @click="$refs.fileUploadInput.click()">
           <v-icon>mdi-file-upload-outline</v-icon>
         </v-btn>
 
-        <v-menu v-model="createDirectoryDialogOpen" offset-y attach :close-on-content-click="false">
+        <v-menu v-model="createDirectoryDialogOpen" :close-on-content-click="false" attach offset-y>
           <template v-slot:activator="{ on }">
             <v-btn v-on="on" class="mr-1" depressed>
               <v-icon>mdi-folder-plus-outline</v-icon>
@@ -27,17 +39,17 @@
               v-model="newDirectoryName"
               :error-messages="createDirectoryErrorMessages"
               :hide-details="createDirectoryErrorMessages.length === 0"
-              solo
-              flat
-              autofocus
               append-icon="mdi-check"
-              @click:append="createDirectory"
+              autofocus
+              flat
               label="Name"
+              solo
+              @click:append="createDirectory"
               @keydown.enter="createDirectory"
             />
           </v-card>
         </v-menu>
-        <v-btn-toggle dense class="ma-0" mandatory v-model="displayMode">
+        <v-btn-toggle v-model="displayMode" class="ma-0" dense mandatory>
           <v-btn value="grid">
             <v-icon>mdi-view-module-outline</v-icon>
           </v-btn>
@@ -50,38 +62,32 @@
       <v-scroll-x-transition leave-absolute>
         <v-data-table
           v-if="displayMode === 'list'"
-          :loading="throttledLoading"
+          :footer-props="{
+            'items-per-page-options': [30,50,100,-1]
+          }"
           :headers="[
             {value: 'type', width: 1, filterable: false, sortable: false},
             {text: 'Name', value: 'basename'},
             {text: 'Size', value: 'size'},
           ]"
-          :options="paginationOptions"
-          :footer-props="{
-            'items-per-page-options': [30,50,100,-1]
-          }"
-          :items="items"
-          @click:row="navigateToItem"
           :item-class="() => 'hand-cursor'"
+          :items="items"
+          :loading="throttledLoading"
+          :options="paginationOptions"
           class="full-width"
         >
-          <template v-slot:item.type="{item}">
-            <v-icon v-text="item.icon"></v-icon>
-          </template>
-          <template v-slot:item.size="{item}">
-            <template v-if="item.type === 'file'">
-              {{ formatBytes(item.size) }}
-            </template>
+          <template v-slot:item="{item}">
+            <library-node-list-item :node="item" @click.native="navigateToItem(item)" @rename-node="renameNode" />
           </template>
         </v-data-table>
         <v-data-iterator
           v-else
-          :loading="throttledLoading"
-          :options="paginationOptions"
-          :items="items"
           :footer-props="{
             'items-per-page-options': [30,50,100,-1]
           }"
+          :items="items"
+          :loading="throttledLoading"
+          :options="paginationOptions"
           class="full-width"
         >
           <template v-slot:no-data>
@@ -97,13 +103,14 @@
               :name="lastNavigation === 'up' ? 'scroll-y-reverse-transition' : 'scroll-y-transition'"
               mode="out-in"
             >
-              <div class="pa-3" v-if="!loading">
+              <div v-if="!loading" class="pa-3">
                 <div class="explorer-grid">
                   <library-node-view
                     v-for="item in items"
-                    :node="item"
                     :key="item.path"
+                    :node="item"
                     @click="navigateToItem(item)"
+                    @rename-node="renameNode"
                   />
                 </div>
               </div>
@@ -115,7 +122,7 @@
 
     <v-dialog v-model="documentViewerDialogOpen" fullscreen transition="dialog-bottom-transition">
       <div v-if="!!documentViewerNode" class="fill-height d-flex flex-column">
-        <v-toolbar dense class="flex-grow-0">
+        <v-toolbar class="flex-grow-0" dense>
           <v-toolbar-title>{{ documentViewerNodeDisplayName }}</v-toolbar-title>
           <v-spacer />
           <v-btn icon @click="documentViewerDialogOpen = false">
@@ -123,18 +130,18 @@
           </v-btn>
         </v-toolbar>
         <document-viewer
-          class="flex-grow-1"
           :library-id="library.id"
-          :node="documentViewerNode"
           :loading="loading"
+          :node="documentViewerNode"
           :page="documentViewerPage"
+          class="flex-grow-1"
           @delete="permanently => deleteNode(documentViewerNode, permanently)"
           @request-update="fetch"
         />
       </div>
     </v-dialog>
 
-    <v-snackbar top right v-model="snackbarOpen" :timeout="5000">
+    <v-snackbar v-model="snackbarOpen" :timeout="5000" right top>
       {{ snackbarText }}
     </v-snackbar>
   </div>
@@ -147,11 +154,13 @@
   import DocumentViewer from '@/components/document-viewer'
   import {LibraryNodeContainer} from '@/lib/data-container/LibraryNodeContainer'
   import {CONFLICT, LOCKED} from '@/lib/statuses'
+  import {nodeDragAndDrop, nodeDragEventIsDroppable} from '@/lib/mixins/nodeDragAndDrop'
+  import LibraryNodeListItem from '@/components/library-node-list-item'
 
   export default {
     name: 'library-explorer-view',
-    components: {DocumentViewer, LibraryNodeView},
-    mixins: [formatsBytes],
+    components: {LibraryNodeListItem, DocumentViewer, LibraryNodeView},
+    mixins: [formatsBytes, nodeDragAndDrop],
     props: {
       library: Object,
     },
@@ -179,6 +188,8 @@
       newDirectoryName: '',
       createDirectoryErrorMessages: [],
       createDirectoryDialogOpen: '',
+      navigateToParentDragRefCount: 0,
+      navigateToParentIntervalId: null,
     }),
     watch: {
       library() {
@@ -263,13 +274,15 @@
     },
     async mounted() {
       this.fetch()
+
+      this.$on('rename-node', this.renameNode)
     },
     methods: {
       async fetch() {
         const node = LibraryNodeContainer.wrap(await axios.$get(`/library/${this.library.id}/node`, {
           params: {
             path: this.currentPath,
-          }
+          },
         }))
 
         this.currentNode = node
@@ -290,7 +303,7 @@
           const data = await axios.$get(`/library/${this.library.id}/browse`, {
             params: {
               path: this.currentDirectoryPath,
-            }
+            },
           })
           this.items = LibraryNodeContainer.wrap(data.items)
           this.parentPath = data.parent_path
@@ -323,7 +336,7 @@
             data: {
               delete_permanently: permanently,
               path: this.currentPath,
-            }
+            },
           })
           this.documentViewerDialogOpen = false
           this.snackbarText = node.basename + ' deleted.'
@@ -340,7 +353,32 @@
 
         this.loading = false
       },
-      async createDirectory(){
+      async renameNode(node, targetPath) {
+        this.loading = true
+
+        console.log({node, targetPath})
+
+        try {
+          await axios.$post(`/library/${this.library.id}/node/rename`, {
+            source_path: node.path,
+            target_path: targetPath,
+            move_inside_directories: true,
+          })
+          this.snackbarText = node.basename + ' moved.'
+          this.snackbarOpen = true
+          await this.browse()
+        } catch (e) {
+          console.error(e)
+
+          if (e.response?.status === LOCKED) {
+            this.snackbarText = `Could not move ${node.basename}. The file is currently locked by another process (e.g. OCR)`
+            this.snackbarOpen = true
+          }
+        }
+
+        this.loading = false
+      },
+      async createDirectory() {
         try {
           await axios.$post(`/library/${this.library.id}/directory`, {
             path: this.currentNode.path + '/' + this.newDirectoryName,
@@ -378,16 +416,40 @@
           console.error(e)
         }
       },
+      onNavigateToParentButtonDragEnter(event) {
+        if (this.navigateToParentDragRefCount === 0) {
+          if (nodeDragEventIsDroppable(event)) {
+            const intervalId = setInterval(() => {
+              if (this.navigateToParentIntervalId === intervalId) {
+                this.navigateToPath(this.parentPath)
+              }
+            }, 750)
+            this.navigateToParentIntervalId = intervalId
+          }
+        }
+
+        this.navigateToParentDragRefCount++
+      },
+      onNavigateToParentButtonDragLeave(event) {
+        this.navigateToParentDragRefCount--
+
+        if (this.navigateToParentDragRefCount === 0) {
+          if (nodeDragEventIsDroppable(event) && this.navigateToParentIntervalId) {
+            clearTimeout(this.navigateToParentIntervalId)
+            this.navigateToParentIntervalId = null
+          }
+        }
+      },
     },
   }
 </script>
 
 <style lang="scss" scoped>
   .explorer-grid {
-    width: 100%;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(164px, 100%), 1fr));
     grid-gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(min(164px, 100%), 1fr));
+    width: 100%;
   }
 
   .full-width {

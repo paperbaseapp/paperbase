@@ -1,5 +1,18 @@
 <template>
-  <v-card @click="$emit('click')" class="library-node-view" min-height="156px" outlined>
+  <v-card
+    @click="$emit('click')"
+    class="library-node-view"
+    min-height="156px"
+    outlined
+    :class="{'drop-active': dropActive}"
+    :draggable="isDraggable(node)"
+    @dragover="event => !dropDisabled && nodeDragOver(event, node)"
+    @dragstart="onNodeDragStart"
+    @dragend="dropDisabled = false"
+    @drop="onNodeDrop"
+    @dragenter="onNodeDragEnter"
+    @dragleave="onNodeDragLeave"
+  >
     <v-tooltip v-if="node.needs_sync" top transition="slide-y-reverse-transition">
       <template v-slot:activator="{on}">
         <div class="sync-alert pa-1" v-on="on">
@@ -20,7 +33,7 @@
       gradient="to top, rgba(0, 15, 25, 0.8) 0%, rgba(0, 15, 25, 0) 100%"
     />
     <div v-else class="thumbnail pb-5 d-flex align-center justify-center">
-      <v-icon size="64" v-text="node.icon" />
+      <v-icon size="64" :color="dropActive ? 'white' : 'primary'" v-text="node.icon" />
     </div>
     <v-spacer />
     <div class="pa-3 card-text text-caption font-weight-medium" :class="{'white--text': hasThumbnail}">
@@ -31,8 +44,11 @@
 </template>
 
 <script>
+  import {nodeDragAndDrop} from '@/lib/mixins/nodeDragAndDrop'
+
   export default {
     name: 'library-node-view',
+    mixins: [nodeDragAndDrop],
     props: {
       node: Object,
     },
@@ -56,6 +72,19 @@
 </script>
 
 <style lang="scss" scoped>
+  .drop-active {
+    background-color: var(--v-primary-base);
+    color: white;
+
+    td > * {
+      pointer-events: none !important;
+    }
+  }
+
+  .inherit-color {
+    color: inherit;
+  }
+
   .library-node-view {
     position: relative;
     display: flex;

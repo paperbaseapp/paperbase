@@ -37,7 +37,16 @@ class LibraryNode implements \JsonSerializable
         protected string $path,
     )
     {
+        $this->rebuild();
+    }
+
+    /**
+     * Rebuild file information and delete caches
+     */
+    private function rebuild()
+    {
         $this->fileInfo = new \SplFileInfo($this->getAbsolutePath());
+        $this->documentCache = null;
     }
 
     public function getFileInfo(): \SplFileInfo
@@ -45,7 +54,12 @@ class LibraryNode implements \JsonSerializable
         return $this->fileInfo;
     }
 
-    private function getAbsolutePath()
+    public function getPath(): string
+    {
+        return $this->path;
+    }
+
+    public function getAbsolutePath()
     {
         return $this->library->getAbsolutePath($this->path);
     }
@@ -113,38 +127,51 @@ class LibraryNode implements \JsonSerializable
     public function moveToTrash()
     {
         $trashPath = $this->library->getAvailableTrashPath($this->getFileInfo()->getBasename());
+        $this->rename($trashPath);
+    }
 
-        if ($this->getType() === self::TYPE_DIRECTORY) {
-            $oldDocuments = $this
-                ->library
-                ->documents()
-                ->where('path', 'like', '%' . str_replace('%', '\\%', $this->path))
-                ->get();
+    /**
+     * @throws CouldNotAcquireLockException
+     * @throws \Safe\Exceptions\FilesystemException
+     */
+    public function rename(string $targetPath)
+    {
+        \DB::transaction(function () use ($targetPath) {
+            if ($this->getType() === self::TYPE_DIRECTORY) {
+                $oldDocuments = $this
+                    ->library
+                    ->documents()
+                    ->where('path', 'like', str_replace('%', '\\%', $this->path) . '%')
+                    ->get();
 
-            /** @var Document $document */
-            foreach ($oldDocuments as $document) {
-                if (!$document->makeLock(3)->get()) {
-                    throw new CouldNotAcquireLockException();
+                /** @var Document $document */
+                foreach ($oldDocuments as $document) {
+                    if (!$document->makeLock(3)->block(10)) {
+                        throw new CouldNotAcquireLockException();
+                    }
+
+                    $document->path = Str::of($document->path)->replaceFirst($this->path, $targetPath);
+                    $document->trashed_at = Carbon::now();
+                    $document->save();
                 }
+            } else {
+                $document = $this->getDocument();
+                if ($document) {
+                    if (!$document->makeLock(3)->block(10)) {
+                        throw new CouldNotAcquireLockException();
+                    }
 
-                $document->path = Str::of($document->path)->replaceFirst($this->path, $trashPath);
-                $document->trashed_at = Carbon::now();
-                $document->save();
-            }
-        } else {
-            $document = $this->getDocument();
-            if ($document) {
-                if (!$document->makeLock(3)->get()) {
-                    throw new CouldNotAcquireLockException();
+                    $document->path = $targetPath;
+                    $document->trashed_at = Carbon::now();
+                    $document->save();
                 }
-
-                $document->path = $trashPath;
-                $document->trashed_at = Carbon::now();
-                $document->save();
             }
-        }
 
-        rename($this->getAbsolutePath(), $this->library->getAbsolutePath($trashPath));
+            \Safe\rename($this->getAbsolutePath(), $this->library->getAbsolutePath($targetPath));
+
+            $this->path = $targetPath;
+            $this->rebuild();
+        });
     }
 
     public function delete()

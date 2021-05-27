@@ -173,4 +173,13 @@ class Document extends Model implements LockableContract
         collect($this->pendingJobs)->each(fn($job) => dispatch($job));
         return $this;
     }
+
+    /**
+     * Make sure path does not start with a slash
+     * @param string $path
+     */
+    public function setPathAttribute(string $path)
+    {
+        $this->attributes['path'] = ltrim($path, '/');
+    }
 }

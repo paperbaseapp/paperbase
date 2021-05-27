@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Jobs\SyncLibraryJob;
 use App\Models\DocumentPage;
 use App\Models\Library;
+use App\Models\Stateless\LibraryNode;
 use App\Models\User;
 use App\Script;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,6 +18,7 @@ use MeiliSearch\Endpoints\Indexes;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class LibraryController extends Controller
 {
@@ -169,6 +171,13 @@ class LibraryController extends Controller
 
             rename($file->path(), $library->getAbsolutePath($targetFile));
 
+            if (config('paperbase.library_directory_owner_uid') !== null) {
+                Script::run('set-owner.sh', [
+                    $library->getAbsolutePath($targetFile),
+                    config('paperbase.library_directory_owner_uid'),
+                ]);
+            }
+
             $documents[] = $library
                 ->addDocumentFromPath($library->getAbsolutePath($targetFile))
                 ->dispatchPendingJobs();
@@ -177,6 +186,10 @@ class LibraryController extends Controller
         return $documents;
     }
 
+    /**
+     * @throws \Safe\Exceptions\FilesystemException
+     * @throws \Illuminate\Validation\ValidationException
+     */
     public function createDirectory(Library $library)
     {
         $this->validateWith(['path' => 'string|nullable']);
@@ -190,7 +203,7 @@ class LibraryController extends Controller
             throw new ConflictHttpException();
         }
 
-        mkdir($library->getAbsolutePath($path), recursive: true);
+        \Safe\mkdir($library->getAbsolutePath($path), recursive: true);
 
         if (config('paperbase.library_directory_owner_uid') !== null) {
             Script::run('set-owner.sh', [
@@ -200,6 +213,38 @@ class LibraryController extends Controller
         }
 
         return $library->getLibraryNodeAt($path);
+    }
+
+    /**
+     * @throws \Safe\Exceptions\FilesystemException
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function renameNode(Library $library)
+    {
+        $this->validateWith([
+            'source_path' => 'string|nullable',
+            'target_path' => 'string|nullable',
+            'move_inside_directories' => 'boolean|sometimes', // Whether to move source into target, if target is an existing directory
+        ]);
+
+        $sourceNode = $library->getLibraryNodeAt(request('source_path', ''));
+        $targetPath = request('target_path', '');
+
+        if (!$library->isInsideLibrary($targetPath)) {
+            throw new BadRequestHttpException('Target path must be inside library');
+        }
+
+        if ($library->hasNode($targetPath)) {
+            $targetNode = $library->getLibraryNodeAt(request('target_path', '/'));
+
+            if ($targetNode->getType() === LibraryNode::TYPE_DIRECTORY && request('move_inside_directories', false)) {
+                $targetPath = join_path($targetPath, $sourceNode->getFileInfo()->getBasename());
+            }
+        }
+
+        $sourceNode->rename($library->getSafeFilename($targetPath));
+
+        return $sourceNode;
     }
 }
 

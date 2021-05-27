@@ -44,6 +44,7 @@ Route::group(['middleware' => 'auth:sanctum'], function (Router $router) {
         $router->get('/{library}/search', [LibraryController::class, 'search'])->name('search');
         $router->post('/{library}/directory', [LibraryController::class, 'createDirectory']);
         $router->post('/{library}/file', [LibraryController::class, 'uploadFile']);
+        $router->post('/{library}/node/rename', [LibraryController::class, 'renameNode']);
     });
 
     $router->group(['prefix' => '/document'], function (Router $router) {

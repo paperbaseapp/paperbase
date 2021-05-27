@@ -49,11 +49,11 @@ class Library extends Model implements LockableContract
     {
         static::created(function (Library $library) {
             $library->refresh();
-            mkdir($library->getAbsolutePath());
+            \Safe\mkdir($library->getAbsolutePath());
             chmod($library->getAbsolutePath(), 0770);
 
-            mkdir($library->getAbsolutePath($library->trash_path));
-            mkdir($library->getAbsolutePath($library->inbox_path));
+            \Safe\mkdir($library->getAbsolutePath($library->trash_path));
+            \Safe\mkdir($library->getAbsolutePath($library->inbox_path));
             chmod($library->getAbsolutePath($library->trash_path), 0770);
             chmod($library->getAbsolutePath($library->inbox_path), 0770);
 
@@ -208,10 +208,10 @@ class Library extends Model implements LockableContract
             $filenameSplit = explode('.', $filename);
             $targetFilenameSplit = [];
 
-            for ($i = 0; $i < count($filenameSplit); $i++) {
-                $targetFilenameSplit[] = $filenameSplit[$i];
+            foreach ($filenameSplit as $i => $filenamePart) {
+                $targetFilenameSplit[] = $filenamePart;
 
-                if ($i === max(count($filenameSplit) - 2, 0) && $count > 1) {
+                if ($count > 1 && $i === max(count($filenameSplit) - 2, 0)) {
                     $targetFilenameSplit[count($targetFilenameSplit) - 1] .= " $count";
                 }
             }
