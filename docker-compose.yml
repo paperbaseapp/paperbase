@@ -72,9 +72,9 @@ services:
     #   - redis:/data
     restart: on-failure
   meilisearch:
-    image: getmeili/meilisearch
+    image: getmeili/meilisearch:
     volumes:
-      - meilisearch:/data
+      - meilisearch:/data:v0.19.0
     labels:
       - traefik.enable=true
       - traefik.http.routers.search.rule=Host(`search.paperbase.localhost`)
