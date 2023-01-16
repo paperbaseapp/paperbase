@@ -54,7 +54,7 @@ services:
     command: scheduler
     restart: always
   db:
-    image: postgres:13-alpine
+    image: postgres:15-alpine
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
@@ -66,7 +66,7 @@ services:
       - redis:/data
     restart: always
   meilisearch:
-    image: getmeili/meilisearch:v0.19.0
+    image: getmeili/meilisearch:v0.30
     volumes:
       - meilisearch:/data
     environment:

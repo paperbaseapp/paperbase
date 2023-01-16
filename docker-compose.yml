@@ -47,7 +47,7 @@ services:
     command: scheduler
     restart: on-failure
   ui:
-    image: node:alpine
+    image: node:lts-alpine
     volumes:
       - ./ui:/app/ui
     working_dir: /app/ui
@@ -58,7 +58,7 @@ services:
       - traefik.http.routers.ui.rule=Host(`paperbase.localhost`)
       - traefik.http.services.ui.loadbalancer.server.port=8080
   db:
-    image: postgres:13-alpine
+    image: postgres:15-alpine
     ports:
       - 5432:5432
     environment:
@@ -72,7 +72,7 @@ services:
     #   - redis:/data
     restart: on-failure
   meilisearch:
-    image: getmeili/meilisearch:v0.19.0
+    image: getmeili/meilisearch:v0.30
     volumes:
       - meilisearch:/data
     labels:

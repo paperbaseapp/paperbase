@@ -10,8 +10,8 @@ import {isTouchDevice} from '@/lib/isTouchDevice'
 import PortalVue from 'portal-vue'
 import './style/global.scss'
 
-import 'overlayscrollbars/css/OverlayScrollbars.css'
-import 'overlayscrollbars/js/OverlayScrollbars.js'
+import 'overlayscrollbars/overlayscrollbars.css';
+import { OverlayScrollbars } from 'overlayscrollbars';
 
 Vue.config.productionTip = false
 
@@ -26,7 +26,7 @@ new Vue({
   vuetify,
   store,
   mounted() {
-    const scrollbar = window.OverlayScrollbars(document.querySelectorAll('body'), {
+    const scrollbar = OverlayScrollbars(document.querySelectorAll('body'), {
       nativeScrollbarsOverlaid: {
         initialize: false,
       }

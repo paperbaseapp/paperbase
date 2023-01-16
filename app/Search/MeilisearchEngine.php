@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Searchable;
 
-class MeilisearchEngine extends \Meilisearch\Scout\Engines\MeilisearchEngine
+class MeilisearchEngine extends \Laravel\Scout\Engines\MeiliSearchEngine
 {
     public function map(Builder $builder, $results, $model)
     {

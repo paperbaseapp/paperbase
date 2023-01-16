@@ -113,7 +113,8 @@ class LibraryController extends Controller
 
         $query = request('query', '');
         return DocumentPage::search($query, function (Indexes $meilisearch, $query, $options) use ($library) {
-            $options['filters'] = 'library_id="' . $library->id . '"';
+            // TODO: Add index for library_id
+            // $options['filter'] = 'library_id="' . $library->id . '"';
             $options['attributesToCrop'] = ['text_content:50'];
             $options['attributesToHighlight'] = ['text_content', 'document_title'];
             return $meilisearch->search($query, $options);

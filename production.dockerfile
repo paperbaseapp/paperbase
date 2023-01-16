@@ -6,7 +6,7 @@ COPY . /app/
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
 # Stage 2: Build UI
-FROM node:alpine as stage2
+FROM node:lts-alpine as stage2
 COPY --from=stage1 /app /app
 WORKDIR /app/ui
 RUN yarn install \
@@ -16,7 +16,7 @@ RUN yarn install \
     && rm -rf /app/ui
 
 # Final stage
-FROM php:8.0-apache
+FROM php:8.1-apache
 
 ENV APACHE_DOCUMENT_ROOT /app/public
 WORKDIR /app
@@ -40,7 +40,7 @@ RUN apt-get install -y python3 python3-pip poppler-utils tesseract-ocr-deu tesse
     && wget https://bootstrap.pypa.io/get-pip.py \
     && python3 get-pip.py \
     && rm get-pip.py \
-    && pip3 install ocrmypdf==11.7.1
+    && pip3 install ocrmypdf==14.0.2
 # TODO: add more languages with the tesseract-ocr-LANGUAGE
 # https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html
 
